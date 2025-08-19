@@ -6,14 +6,14 @@ from telegram.ext import Application, ContextTypes, CommandHandler
 from flask import Flask, request, jsonify
 import json
 from threading import Thread
-from flask_cors import CORS  # Импорт в начало
+from flask_cors import CORS, cross_origin  # Исправленный импорт
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Токен бота (вставь свой из BotFather)
-BOT_TOKEN = os.environ.get('BOT_TOKEN', 'твой_токен_здесь')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8120075611:AAEdTw_LtsjO3OYYzjeHymdD0TyVraFZ66A')
 
 # Тестовый режим
 TEST_MODE = True
