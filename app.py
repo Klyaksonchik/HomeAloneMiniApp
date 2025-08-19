@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # --- Конфиг ---
-BOT_TOKEN = os.environ.get('BOT_TOKEN', 'твой_токен_здесь')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8120075611:AAEdTw_LtsjO3OYYzjeHymdD0TyVraFZ66A')
 TEST_MODE = True
 
 # --- Данные ---
