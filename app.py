@@ -6,13 +6,14 @@ from telegram.ext import Application, ContextTypes, CommandHandler
 from flask import Flask, request, jsonify
 import json
 from threading import Thread
+from flask_cors import CORS  # Импорт в начало
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Токен бота (вставь свой из BotFather)
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '8120075611:AAEdTw_LtsjO3OYYzjeHymdD0TyVraFZ66A')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', 'твой_токен_здесь')
 
 # Тестовый режим
 TEST_MODE = True
@@ -42,12 +43,11 @@ def load_data():
 
 # Flask приложение для API
 app = Flask(__name__)
+CORS(app)  # Включаем CORS для всего приложения
 
 @app.route('/status', methods=['POST'])
+@cross_origin()  # Декоратор над функцией
 def update_status():
-    from flask_cors import CORS, cross_origin
-    CORS(app)
-    @cross_origin()
     data = request.json
     user_id = data.get('user_id')
     status = data.get('status')
@@ -73,10 +73,8 @@ def update_status():
     return jsonify({'success': True})
 
 @app.route('/contact', methods=['POST'])
+@cross_origin()  # Декоратор над функцией
 def update_contact():
-    from flask_cors import CORS, cross_origin
-    CORS(app)
-    @cross_origin()
     data = request.json
     user_id = data.get('user_id')
     contact = data.get('contact')
