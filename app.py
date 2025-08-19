@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Токен бота (вставь свой из BotFather)
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '8120075611:AAEdTw_LtsjO3OYYzjeHymdD0TyVraFZ66A')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', 'твой_токен_здесь')
 
 # Тестовый режим
 TEST_MODE = True
@@ -22,7 +22,7 @@ TEST_MODE = True
 user_data = {}
 jobs = {}
 
-# Сохранение данных (преобразуем datetime в строку)
+# Сохранение данных (преобразовываем datetime в строку)
 def save_data():
     try:
         data_to_save = {}
@@ -36,7 +36,7 @@ def save_data():
     except Exception as e:
         logger.error(f"Ошибка сохранения: {e}")
 
-# Загрузка данных (преобразуем строку обратно в datetime)
+# Загрузка данных (преобразовываем строку обратно в datetime)
 def load_data():
     global user_data
     try:
