@@ -45,6 +45,9 @@ app = Flask(__name__)
 
 @app.route('/status', methods=['POST'])
 def update_status():
+    from flask_cors import CORS, cross_origin
+    CORS(app)
+    @cross_origin()
     data = request.json
     user_id = data.get('user_id')
     status = data.get('status')
@@ -71,13 +74,16 @@ def update_status():
 
 @app.route('/contact', methods=['POST'])
 def update_contact():
+    from flask_cors import CORS, cross_origin
+    CORS(app)
+    @cross_origin()
     data = request.json
     user_id = data.get('user_id')
     contact = data.get('contact')
     if not user_id or not contact.startswith('@'):
         return jsonify({'success': False, 'error': 'Invalid contact'}), 400
     if user_id not in user_data:
-        user_data[user_id] = {'status': 'дома', 'emergency_contact': '', 'emergency_contact': '', 'left_home_time': None, 'warnings_sent': 0}
+        user_data[user_id] = {'status': 'дома', 'emergency_contact': '', 'left_home_time': None, 'warnings_sent': 0}
     user_data[user_id]['emergency_contact'] = contact
     save_data()
     return jsonify({'success': True})
