@@ -72,7 +72,7 @@ def update_status():
         user_data[user_id]['left_home_time'] = datetime.now()
         user_data[user_id]['warnings_sent'] = 0
         if TEST_MODE:
-            job_timeout = 60  # 1 минута
+            job_timeout = 30  # 30 секунд
         else:
             job_timeout = 24 * 3600  # 24 часа
         try:
@@ -84,19 +84,25 @@ def update_status():
     save_data()
     return jsonify({'success': True})
 
-@app.route('/contact', methods=['POST'])
+@app.route('/contact', methods=['POST', 'GET'])
 @cross_origin()
 def update_contact():
-    data = request.json
-    user_id = data.get('user_id')
-    contact = data.get('contact')
-    if not user_id or not contact.startswith('@'):
-        return jsonify({'success': False, 'error': 'Invalid contact'}), 400
-    if user_id not in user_data:
-        user_data[user_id] = {'status': 'дома', 'emergency_contact': '', 'left_home_time': None, 'warnings_sent': 0}
-    user_data[user_id]['emergency_contact'] = contact
-    save_data()
-    return jsonify({'success': True})
+    if request.method == 'POST':
+        data = request.json
+        user_id = data.get('user_id')
+        contact = data.get('contact')
+        if not user_id or not contact.startswith('@'):
+            return jsonify({'success': False, 'error': 'Invalid contact'}), 400
+        if user_id not in user_data:
+            user_data[user_id] = {'status': 'дома', 'emergency_contact': '', 'left_home_time': None, 'warnings_sent': 0}
+        user_data[user_id]['emergency_contact'] = contact
+        save_data()
+        return jsonify({'success': True})
+    elif request.method == 'GET':
+        user_id = request.args.get('user_id')
+        if not user_id or int(user_id) not in user_data:
+            return jsonify({'emergency_contact': ''}), 200
+        return jsonify({'emergency_contact': user_data[int(user_id)]['emergency_contact']}), 200
 
 # Таймер для проверки статуса
 async def check_user_status_callback(context: ContextTypes.DEFAULT_TYPE):
@@ -107,7 +113,7 @@ async def check_user_status_callback(context: ContextTypes.DEFAULT_TYPE):
     data = user_data[user_id]
     if TEST_MODE:
         warning_text = "🤗 Открой приложение и передвинь слайдер, если ты дома!"
-        emergency_timeout = 30  # 30 секунд
+        emergency_timeout = 10  # 10 секунд
     else:
         warning_text = "🤗 Открой приложение и передвинь слайдер, если ты дома! (24 часа прошло)"
         emergency_timeout = 3600  # 1 час
@@ -133,7 +139,7 @@ async def send_emergency_alert_callback(context: ContextTypes.DEFAULT_TYPE):
         logger.warning(f"Нет экстренного контакта для {user_id}")
         return
     if TEST_MODE:
-        message = f"🚨 Тест! {user_id} не отвечает 1.5 мин. Проверь!"
+        message = f"🚨 Тест! {user_id} не отвечает 40 сек. Проверь!"
     else:
         message = f"🚨 Экстренно! {user_id} не отвечает 25 часов. Проверь!"
     try:
