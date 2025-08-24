@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "username": "owner_user",
+      "chat_id": 123456,
+      "contact": "friend_user",
+      "timer": "2025-08-23T13:40:00"
+    },
+    {
+      "username": "friend_user",
+      "chat_id": 7891011
+    }
+  ]
+}
