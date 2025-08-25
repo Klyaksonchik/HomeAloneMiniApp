@@ -300,6 +300,12 @@ def http_update_status():
                 rec["username"] = username
 
         if status == "не дома":
+            # Нельзя уходить из дома без указанного экстренного контакта
+            with data_lock:
+                has_contact = bool(rec.get("emergency_contact_username"))
+            if not has_contact:
+                return jsonify({"success": False, "error": "contact_required"}), 400
+
             with data_lock:
                 user_data[user_id]["left_home_time"] = datetime.now()
                 user_data[user_id]["warnings_sent"] = 0
@@ -323,6 +329,27 @@ def http_update_status():
         return jsonify({"success": False, "error": "Internal Server Error"}), 500
 
 
+@app.route("/status", methods=["GET"])  # вернуть текущий статус
+@cross_origin()
+def http_get_status():
+    try:
+        user_id = request.args.get("user_id")
+        if user_id is None:
+            return jsonify({"status": "unknown", "emergency_contact_set": False}), 200
+        user_id = int(user_id)
+        with data_lock:
+            rec = user_data.get(user_id)
+            if not rec:
+                return jsonify({"status": "дома", "emergency_contact_set": False}), 200
+            return jsonify({
+                "status": rec.get("status", "дома"),
+                "emergency_contact_set": bool(rec.get("emergency_contact_username")),
+            }), 200
+    except Exception as e:
+        logger.exception("Ошибка GET /status: %s", e)
+        return jsonify({"status": "дома", "emergency_contact_set": False}), 200
+
+
 @app.route("/contact", methods=["POST", "GET"])
 @cross_origin()
 def http_update_contact():
@@ -336,7 +363,12 @@ def http_update_contact():
         except Exception:
             return jsonify({"success": False, "error": "Invalid user_id"}), 400
 
-        if not isinstance(contact, str) or not contact.startswith("@"):
+        if not isinstance(contact, str):
+            return jsonify({"success": False, "error": "Invalid contact"}), 400
+        contact = contact.strip()
+        if contact and not contact.startswith("@"):
+            contact = "@" + contact
+        if not contact or contact == "@":
             return jsonify({"success": False, "error": "Invalid contact"}), 400
 
         with data_lock:
@@ -399,3 +431,5 @@ if __name__ == "__main__":
     Thread(target=run_flask, daemon=True).start()
     logger.info("Инициализация бота, polling…")
     application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
+
+
