@@ -264,50 +264,57 @@ def root() -> str:
 @app.route("/status", methods=["POST"])
 @cross_origin()
 def http_update_status():
-    payload = request.json or {}
-    user_id = payload.get("user_id")
-    status = payload.get("status")
-
-    if user_id is None or status not in ("дома", "не дома"):
-        return jsonify({"success": False, "error": "Invalid data"}), 400
-
     try:
-        user_id = int(user_id)
-    except Exception:
-        return jsonify({"success": False, "error": "Invalid user_id"}), 400
+        payload = request.json or {}
+        user_id = payload.get("user_id")
+        status = payload.get("status")
 
-    with data_lock:
-        rec = user_data.get(user_id)
-        if not rec:
-            rec = {
-                "status": "дома",
-                "username": None,
-                "chat_id": None,
-                "emergency_contact_username": "",
-                "emergency_contact_user_id": None,
-                "left_home_time": None,
-                "warnings_sent": 0,
-            }
-            user_data[user_id] = rec
+        if user_id is None or status not in ("дома", "не дома"):
+            return jsonify({"success": False, "error": "Invalid data"}), 400
 
-        rec["status"] = status
+        try:
+            user_id = int(user_id)
+        except Exception:
+            return jsonify({"success": False, "error": "Invalid user_id"}), 400
 
-    if status == "не дома":
         with data_lock:
-            user_data[user_id]["left_home_time"] = datetime.now()
-            user_data[user_id]["warnings_sent"] = 0
-        # Перезапустить последовательность таймеров
-        cancel_all_jobs_for_user(user_id)
-        schedule_sequence_for_user(user_id)
-        logger.info("Запущены таймеры для %s", user_id)
-    else:  # статус "дома"
-        cancel_all_jobs_for_user(user_id)
-        with data_lock:
-            user_data[user_id]["left_home_time"] = None
-            user_data[user_id]["warnings_sent"] = 0
+            rec = user_data.get(user_id)
+            if not rec:
+                rec = {
+                    "status": "дома",
+                    "username": None,
+                    "chat_id": None,
+                    "emergency_contact_username": "",
+                    "emergency_contact_user_id": None,
+                    "left_home_time": None,
+                    "warnings_sent": 0,
+                }
+                user_data[user_id] = rec
 
-    save_data()
-    return jsonify({"success": True})
+            rec["status"] = status
+
+        if status == "не дома":
+            with data_lock:
+                user_data[user_id]["left_home_time"] = datetime.now()
+                user_data[user_id]["warnings_sent"] = 0
+            cancel_all_jobs_for_user(user_id)
+            try:
+                schedule_sequence_for_user(user_id)
+            except Exception as e:
+                logger.exception("Ошибка планирования таймеров для %s: %s", user_id, e)
+                return jsonify({"success": False, "error": "Timer scheduling failed"}), 500
+            logger.info("Запущены таймеры для %s", user_id)
+        else:  # статус "дома"
+            cancel_all_jobs_for_user(user_id)
+            with data_lock:
+                user_data[user_id]["left_home_time"] = None
+                user_data[user_id]["warnings_sent"] = 0
+
+        save_data()
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.exception("Ошибка /status: %s", e)
+        return jsonify({"success": False, "error": "Internal Server Error"}), 500
 
 
 @app.route("/contact", methods=["POST", "GET"])
@@ -362,6 +369,22 @@ def http_update_contact():
 
 def run_bot() -> None:
     application.run_polling()
+
+
+@app.route("/debug", methods=["GET"])  # только для отладки
+def http_debug():
+    try:
+        with data_lock:
+            snapshot = {}
+            for uid, rec in user_data.items():
+                safe = dict(rec)
+                if isinstance(safe.get("left_home_time"), datetime):
+                    safe["left_home_time"] = safe["left_home_time"].isoformat()
+                snapshot[str(uid)] = safe
+        return jsonify({"user_data": snapshot, "jobs_keys": list(jobs.keys())})
+    except Exception as e:
+        logger.exception("Ошибка /debug: %s", e)
+        return jsonify({"error": "debug failed"}), 500
 
 
 if __name__ == "__main__":
