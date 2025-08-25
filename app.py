@@ -118,7 +118,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     save_data()
     await update.message.reply_text(
-        "✅ Ты зарегистрирован в системе! Фронтенд сможет тебя найти."
+        "✅ Ты зарегистрирован в системе! Запускай приложение по кнопке "Home Alone" ниже"
     )
 
 
