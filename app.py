@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import asyncio
 from datetime import datetime
 from threading import Thread, Lock, Timer
 
@@ -123,69 +124,46 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 application.add_handler(CommandHandler("start", cmd_start))
 
 
-# -------------------- Job callbacks --------------------
-async def job_send_reminder_1(context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = context.job.data
+def send_message_async(chat_id: int, text: str) -> None:
+    try:
+        application.create_task(application.bot.send_message(chat_id=chat_id, text=text))
+    except Exception as e:
+        logger.exception("Ошибка планирования отправки сообщения: %s", e)
+
+
+def _reminder1(user_id: int) -> None:
     with data_lock:
         rec = user_data.get(user_id)
     if not rec or rec.get("status") != "не дома":
         return
-
-    try:
-        await context.bot.send_message(
-            chat_id=user_id,
-            text="🤗 Ты в порядке? Отметься, что ты дома."
-        )
-        with data_lock:
-            if user_id in user_data:
-                user_data[user_id]["warnings_sent"] = 1
-        save_data()
-
-        # Запланировать следующее напоминание
-        job2 = context.job_queue.run_once(
-            job_send_reminder_2,
-            REMINDER_2_DELAY,
-            data=user_id,
-            name=f"{user_id}:rem2",
-        )
-        with data_lock:
-            jobs[f"{user_id}:rem2"] = job2
-    except Exception as e:
-        logger.exception("Ошибка отправки первого напоминания: %s", e)
+    send_message_async(user_id, "🤗 Ты в порядке? Отметься, что ты дома.")
+    with data_lock:
+        if user_id in user_data:
+            user_data[user_id]["warnings_sent"] = 1
+    save_data()
+    t2 = Timer(REMINDER_2_DELAY, _reminder2, args=(user_id,))
+    with data_lock:
+        jobs[f"{user_id}:rem2"] = t2
+    t2.start()
 
 
-async def job_send_reminder_2(context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = context.job.data
+def _reminder2(user_id: int) -> None:
     with data_lock:
         rec = user_data.get(user_id)
     if not rec or rec.get("status") != "не дома":
         return
-
-    try:
-        await context.bot.send_message(
-            chat_id=user_id,
-            text="🤗 Напоминание! Если ты уже дома — отметься."
-        )
-        with data_lock:
-            if user_id in user_data:
-                user_data[user_id]["warnings_sent"] = 2
-        save_data()
-
-        # Запланировать экстренное сообщение
-        jobe = context.job_queue.run_once(
-            job_send_emergency,
-            EMERGENCY_DELAY,
-            data=user_id,
-            name=f"{user_id}:emerg",
-        )
-        with data_lock:
-            jobs[f"{user_id}:emerg"] = jobe
-    except Exception as e:
-        logger.exception("Ошибка отправки второго напоминания: %s", e)
+    send_message_async(user_id, "🤗 Напоминание! Если ты уже дома — отметься.")
+    with data_lock:
+        if user_id in user_data:
+            user_data[user_id]["warnings_sent"] = 2
+    save_data()
+    t3 = Timer(EMERGENCY_DELAY, _emergency, args=(user_id,))
+    with data_lock:
+        jobs[f"{user_id}:emerg"] = t3
+    t3.start()
 
 
-async def job_send_emergency(context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = context.job.data
+def _emergency(user_id: int) -> None:
     with data_lock:
         rec = user_data.get(user_id)
     if not rec or rec.get("status") != "не дома":
@@ -194,7 +172,6 @@ async def job_send_emergency(context: ContextTypes.DEFAULT_TYPE) -> None:
     emergency_contact_user_id = rec.get("emergency_contact_user_id")
     emergency_contact_username = rec.get("emergency_contact_username")
 
-    # Разрешить user_id контакта, если неизвестен
     if not emergency_contact_user_id and emergency_contact_username:
         with data_lock:
             for uid, r in user_data.items():
@@ -205,26 +182,11 @@ async def job_send_emergency(context: ContextTypes.DEFAULT_TYPE) -> None:
         save_data()
 
     if not emergency_contact_user_id:
-        try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text="⚠️ Экстренный контакт ещё не активировал бота или не указан."
-            )
-        except Exception:
-            pass
+        send_message_async(user_id, "⚠️ Экстренный контакт ещё не активировал бота или не указан.")
         return
 
-    try:
-        await context.bot.send_message(
-            chat_id=emergency_contact_user_id,
-            text=f"🚨 Твой друг {user_id} не выходит на связь. Проверь, всё ли с ним в порядке."
-        )
-        await context.bot.send_message(
-            chat_id=user_id,
-            text="🚨 Экстренный контакт уведомлён! Если ты в порядке — отметься."
-        )
-    except Exception as e:
-        logger.exception("Ошибка отправки экстренного сообщения: %s", e)
+    send_message_async(emergency_contact_user_id, f"🚨 Твой друг {user_id} не выходит на связь. Проверь, всё ли с ним в порядке.")
+    send_message_async(user_id, "🚨 Экстренный контакт уведомлён! Если ты в порядке — отметься.")
 
 
 def cancel_all_jobs_for_user(user_id: int) -> None:
@@ -234,21 +196,17 @@ def cancel_all_jobs_for_user(user_id: int) -> None:
             job = jobs.pop(k, None)
             if job:
                 try:
-                    job.schedule_removal()
+                    job.cancel()
                 except Exception:
                     pass
 
 
 def schedule_sequence_for_user(user_id: int) -> None:
-    # Первый таймер на REMINDER_1_DELAY
-    job1 = application.job_queue.run_once(
-        job_send_reminder_1,
-        REMINDER_1_DELAY,
-        data=user_id,
-        name=f"{user_id}:rem1",
-    )
+    # Первый таймер на REMINDER_1_DELAY через threading.Timer
+    t1 = Timer(REMINDER_1_DELAY, _reminder1, args=(user_id,))
     with data_lock:
-        jobs[f"{user_id}:rem1"] = job1
+        jobs[f"{user_id}:rem1"] = t1
+    t1.start()
 
 
 def schedule_sequence_for_user_safe(user_id: int, attempt: int = 1, max_attempts: int = 10) -> None:
@@ -326,7 +284,7 @@ def http_update_status():
                 user_data[user_id]["warnings_sent"] = 0
             cancel_all_jobs_for_user(user_id)
             try:
-                schedule_sequence_for_user_safe(user_id)
+                schedule_sequence_for_user(user_id)
             except Exception as e:
                 logger.exception("Ошибка планирования таймеров для %s: %s", user_id, e)
                 return jsonify({"success": False, "error": "Timer scheduling failed"}), 500
@@ -394,14 +352,8 @@ def http_update_contact():
     return jsonify({"emergency_contact": value}), 200
 
 
-def run_bot() -> None:
-    logger.info("Инициализация бота, отключаем webhook и запускаем polling…")
-    # На случай, если когда-то был включён webhook — выключим, иначе апдейты не придут в polling
-    try:
-        # drop_pending_updates=True, чтобы очистить залежавшиеся апдейты от старого контура
-        application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
-    except Exception as e:
-        logger.exception("run_polling завершился с ошибкой: %s", e)
+def run_flask() -> None:
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
 
 @app.route("/debug", methods=["GET"])  # только для отладки
@@ -422,9 +374,9 @@ def http_debug():
 
 if __name__ == "__main__":
     load_data()
-    # Запускаем бота в потоке
-    Thread(target=run_bot, daemon=True).start()
-    # Запускаем Flask
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Поднимаем Flask в фоне, а бота — в главном потоке (чтобы не было проблем с event loop)
+    Thread(target=run_flask, daemon=True).start()
+    logger.info("Инициализация бота, polling…")
+    application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
 
 
