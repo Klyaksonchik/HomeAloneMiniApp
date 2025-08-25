@@ -117,7 +117,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     save_data()
     await update.message.reply_text(
-        "✅ Ты зарегистрирован в системе! Открывай приложение по кнопке ниже!."
+        "✅ Ты зарегистрирован в системе! Открывай приложение по кнопке ниже!"
     )
 
 
@@ -209,8 +209,14 @@ def _emergency(user_id: int) -> None:
 
     # Имя для отображения: предпочитаем username, иначе id
     display_name = rec.get("username") or f"id {user_id}"
+    
+    # Отправляем сообщение экстренному контакту
     send_message_async(emergency_contact_user_id, f"🚨 Твой друг {display_name} не выходит на связь. Проверь, всё ли с ним в порядке.")
+    
+    # Отправляем подтверждение пользователю
     send_message_async(user_id, "🚨 Экстренный контакт уведомлён! Если ты в порядке — отметься.")
+    
+    logger.info("Экстренные сообщения отправлены для пользователя %s", user_id)
 
 
 def cancel_all_jobs_for_user(user_id: int) -> None:
@@ -368,8 +374,8 @@ def http_update_contact():
                 user_data[user_id] = rec
 
             rec["emergency_contact_username"] = contact
-            # Сбросить известный ID, он будет резолвиться по username
-            rec["emergency_contact_user_id"] = None
+            # НЕ сбрасываем emergency_contact_user_id, если он уже был установлен
+            # Это позволит сохранить связь с контактом
 
         save_data()
         return jsonify({"success": True})
@@ -385,53 +391,6 @@ def http_update_contact():
         rec = user_data.get(user_id)
         value = rec.get("emergency_contact_username") if rec else ""
     return jsonify({"emergency_contact": value}), 200
-
-
-@app.route("/sync_contacts", methods=["POST"])
-@cross_origin()
-def http_sync_contacts():
-    """Синхронизация контактов между пользователями"""
-    try:
-        payload = request.json or {}
-        user_id = payload.get("user_id")
-        if not user_id:
-            return jsonify({"success": False, "error": "Missing user_id"}), 400
-        
-        user_id = int(user_id)
-        with data_lock:
-            rec = user_data.get(user_id)
-            if not rec:
-                return jsonify({"success": False, "error": "User not found"}), 400
-            
-            contact_username = rec.get("emergency_contact_username")
-            if not contact_username:
-                return jsonify({"success": False, "error": "No emergency contact"}), 400
-            
-            # Ищем контакт и восстанавливаем связь
-            contact_user_id = None
-            for uid, r in user_data.items():
-                if r.get("username") == contact_username and r.get("chat_id"):
-                    contact_user_id = r.get("chat_id")
-                    break
-            
-            if contact_user_id:
-                user_data[user_id]["emergency_contact_user_id"] = contact_user_id
-                save_data()
-                return jsonify({
-                    "success": True, 
-                    "contact_found": True,
-                    "contact_user_id": contact_user_id
-                })
-            else:
-                return jsonify({
-                    "success": True, 
-                    "contact_found": False,
-                    "message": f"Контакт {contact_username} не найден в системе"
-                })
-                
-    except Exception as e:
-        logger.exception("Ошибка /sync_contacts: %s", e)
-        return jsonify({"success": False, "error": "Internal Server Error"}), 500
 
 
 @app.route("/debug", methods=["GET"])  # только для отладки
