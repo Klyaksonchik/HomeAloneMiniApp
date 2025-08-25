@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import asyncio
 import httpx
 from datetime import datetime
 from threading import Thread, Lock, Timer
@@ -117,7 +118,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     save_data()
     await update.message.reply_text(
-        "✅ Ты зарегистрирован в системе! Запускай приложение по кнопке ниже"
+        "✅ Ты зарегистрирован в системе! Запускай приложение по кнопке "Home Alone" ниже"
     )
 
 
@@ -151,14 +152,12 @@ def _reminder1(user_id: int) -> None:
     with data_lock:
         rec = user_data.get(user_id)
     if not rec or rec.get("status") != "не дома":
-        logger.warning("_reminder1: пользователь %s не в статусе 'не дома' или не найден", user_id)
         return
     send_message_async(user_id, "🤗 Ты в порядке? Отметься, что ты дома.")
     with data_lock:
         if user_id in user_data:
             user_data[user_id]["warnings_sent"] = 1
     save_data()
-    logger.info("_reminder1: планирую _reminder2 через %s секунд для пользователя %s", REMINDER_2_DELAY, user_id)
     t2 = Timer(REMINDER_2_DELAY, _reminder2, args=(user_id,))
     with data_lock:
         jobs[f"{user_id}:rem2"] = t2
@@ -170,14 +169,12 @@ def _reminder2(user_id: int) -> None:
     with data_lock:
         rec = user_data.get(user_id)
     if not rec or rec.get("status") != "не дома":
-        logger.warning("_reminder2: пользователь %s не в статусе 'не дома' или не найден", user_id)
         return
     send_message_async(user_id, "🤗 Напоминание! Если ты уже дома — отметься.")
     with data_lock:
         if user_id in user_data:
             user_data[user_id]["warnings_sent"] = 2
     save_data()
-    logger.info("_reminder2: планирую _emergency через %s секунд для пользователя %s", EMERGENCY_DELAY, user_id)
     t3 = Timer(EMERGENCY_DELAY, _emergency, args=(user_id,))
     with data_lock:
         jobs[f"{user_id}:emerg"] = t3
@@ -189,53 +186,28 @@ def _emergency(user_id: int) -> None:
     with data_lock:
         rec = user_data.get(user_id)
     if not rec or rec.get("status") != "не дома":
-        logger.warning("_emergency: пользователь %s не в статусе 'не дома' или не найден", user_id)
         return
 
+    emergency_contact_user_id = rec.get("emergency_contact_user_id")
     emergency_contact_username = rec.get("emergency_contact_username")
-    logger.info("_emergency: для пользователя %s найден контакт %s", user_id, emergency_contact_username)
-    
-    if not emergency_contact_username:
-        send_message_async(user_id, "⚠️ Экстренный контакт не указан.")
-        logger.warning("_emergency: у пользователя %s не указан экстренный контакт", user_id)
-        return
 
-    # Ищем контакт по username и восстанавливаем связь
-    emergency_contact_user_id = None
-    with data_lock:
-        for uid, r in user_data.items():
-            if r.get("username") == emergency_contact_username and r.get("chat_id"):
-                emergency_contact_user_id = r.get("chat_id")
-                logger.info("_emergency: найден контакт %s с chat_id %s", emergency_contact_username, emergency_contact_user_id)
-                # Восстанавливаем связь
-                user_data[user_id]["emergency_contact_user_id"] = emergency_contact_user_id
-                break
+    if not emergency_contact_user_id and emergency_contact_username:
+        with data_lock:
+            for uid, r in user_data.items():
+                if r.get("username") == emergency_contact_username and r.get("chat_id"):
+                    emergency_contact_user_id = r.get("chat_id")
+                    user_data[user_id]["emergency_contact_user_id"] = emergency_contact_user_id
+                    break
         save_data()
 
     if not emergency_contact_user_id:
-        logger.error("_emergency: контакт %s не найден в системе для пользователя %s", emergency_contact_username, user_id)
-        send_message_async(user_id, f"⚠️ Экстренный контакт {emergency_contact_username} ещё не активировал бота. Попросите его написать /start.")
+        send_message_async(user_id, "⚠️ Экстренный контакт ещё не активировал бота или не указан.")
         return
 
     # Имя для отображения: предпочитаем username, иначе id
     display_name = rec.get("username") or f"id {user_id}"
-    logger.info("_emergency: отправляем сообщения для пользователя %s (отображается как %s)", user_id, display_name)
-    
-    # Отправляем сообщение экстренному контакту
-    try:
-        send_message_async(emergency_contact_user_id, f"🚨 Твой друг {display_name} не выходит на связь. Проверь, всё ли с ним в порядке.")
-        logger.info("_emergency: сообщение отправлено контакту %s (chat_id: %s)", emergency_contact_username, emergency_contact_user_id)
-    except Exception as e:
-        logger.error("_emergency: ошибка отправки контакту: %s", e)
-    
-    # Отправляем подтверждение пользователю
-    try:
-        send_message_async(user_id, "🚨 Экстренный контакт уведомлён! Если ты в порядке — отметься.")
-        logger.info("_emergency: подтверждение отправлено пользователю %s", user_id)
-    except Exception as e:
-        logger.error("_emergency: ошибка отправки пользователю: %s", e)
-    
-    logger.info("_emergency: завершено для пользователя %s", user_id)
+    send_message_async(emergency_contact_user_id, f"🚨 Твой друг {display_name} не выходит на связь. Проверь, всё ли с ним в порядке.")
+    send_message_async(user_id, "🚨 Экстренный контакт уведомлён! Если ты в порядке — отметься.")
 
 
 def cancel_all_jobs_for_user(user_id: int) -> None:
@@ -256,6 +228,27 @@ def schedule_sequence_for_user(user_id: int) -> None:
     with data_lock:
         jobs[f"{user_id}:rem1"] = t1
     t1.start()
+
+
+def schedule_sequence_for_user_safe(user_id: int, attempt: int = 1, max_attempts: int = 10) -> None:
+    """Планирует цепочку таймеров с повторными попытками,
+    если job_queue ещё не готова после старта приложения."""
+    try:
+        schedule_sequence_for_user(user_id)
+        logger.info("Таймеры запущены для %s", user_id)
+    except Exception as e:
+        if attempt < max_attempts:
+            delay = min(2 * attempt, 10)
+            logger.warning(
+                "JobQueue не готова (попытка %s/%s). Повтор через %sс. Ошибка: %s",
+                attempt,
+                max_attempts,
+                delay,
+                e,
+            )
+            Timer(delay, schedule_sequence_for_user_safe, args=(user_id, attempt + 1, max_attempts)).start()
+        else:
+            logger.exception("Не удалось запланировать таймеры для %s после %s попыток: %s", user_id, attempt, e)
 
 
 # -------------------- Flask app --------------------
@@ -307,7 +300,12 @@ def http_update_status():
                 rec["username"] = username
 
         if status == "не дома":
-            # Убираем проверку контакта - пользователь сам решает, когда уходить из дома
+            # Нельзя уходить из дома без указанного экстренного контакта
+            with data_lock:
+                has_contact = bool(rec.get("emergency_contact_username"))
+            if not has_contact:
+                return jsonify({"success": False, "error": "contact_required"}), 400
+
             with data_lock:
                 user_data[user_id]["left_home_time"] = datetime.now()
                 user_data[user_id]["warnings_sent"] = 0
@@ -388,8 +386,8 @@ def http_update_contact():
                 user_data[user_id] = rec
 
             rec["emergency_contact_username"] = contact
-            # НЕ сбрасываем emergency_contact_user_id, если он уже был установлен
-            # Это позволит сохранить связь с контактом
+            # Сбросить известный ID, он будет резолвиться по username
+            rec["emergency_contact_user_id"] = None
 
         save_data()
         return jsonify({"success": True})
@@ -405,6 +403,10 @@ def http_update_contact():
         rec = user_data.get(user_id)
         value = rec.get("emergency_contact_username") if rec else ""
     return jsonify({"emergency_contact": value}), 200
+
+
+def run_flask() -> None:
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
 
 @app.route("/debug", methods=["GET"])  # только для отладки
@@ -423,13 +425,11 @@ def http_debug():
         return jsonify({"error": "debug failed"}), 500
 
 
-def run_flask() -> None:
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
-
 if __name__ == "__main__":
     load_data()
     # Поднимаем Flask в фоне, а бота — в главном потоке (чтобы не было проблем с event loop)
     Thread(target=run_flask, daemon=True).start()
     logger.info("Инициализация бота, polling…")
     application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
+
+
