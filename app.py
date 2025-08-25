@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from datetime import datetime
-from threading import Thread, Lock
+from threading import Thread, Lock, Timer
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
@@ -251,6 +251,27 @@ def schedule_sequence_for_user(user_id: int) -> None:
         jobs[f"{user_id}:rem1"] = job1
 
 
+def schedule_sequence_for_user_safe(user_id: int, attempt: int = 1, max_attempts: int = 10) -> None:
+    """Планирует цепочку таймеров с повторными попытками,
+    если job_queue ещё не готова после старта приложения."""
+    try:
+        schedule_sequence_for_user(user_id)
+        logger.info("Таймеры запущены для %s", user_id)
+    except Exception as e:
+        if attempt < max_attempts:
+            delay = min(2 * attempt, 10)
+            logger.warning(
+                "JobQueue не готова (попытка %s/%s). Повтор через %sс. Ошибка: %s",
+                attempt,
+                max_attempts,
+                delay,
+                e,
+            )
+            Timer(delay, schedule_sequence_for_user_safe, args=(user_id, attempt + 1, max_attempts)).start()
+        else:
+            logger.exception("Не удалось запланировать таймеры для %s после %s попыток: %s", user_id, attempt, e)
+
+
 # -------------------- Flask app --------------------
 app = Flask(__name__)
 CORS(app)
@@ -268,6 +289,7 @@ def http_update_status():
         payload = request.json or {}
         user_id = payload.get("user_id")
         status = payload.get("status")
+        username = payload.get("username")
 
         if user_id is None or status not in ("дома", "не дома"):
             return jsonify({"success": False, "error": "Invalid data"}), 400
@@ -292,6 +314,11 @@ def http_update_status():
                 user_data[user_id] = rec
 
             rec["status"] = status
+            # Проставим chat_id и username, если не были сохранены
+            if not rec.get("chat_id"):
+                rec["chat_id"] = user_id
+            if username is not None:
+                rec["username"] = username
 
         if status == "не дома":
             with data_lock:
@@ -299,7 +326,7 @@ def http_update_status():
                 user_data[user_id]["warnings_sent"] = 0
             cancel_all_jobs_for_user(user_id)
             try:
-                schedule_sequence_for_user(user_id)
+                schedule_sequence_for_user_safe(user_id)
             except Exception as e:
                 logger.exception("Ошибка планирования таймеров для %s: %s", user_id, e)
                 return jsonify({"success": False, "error": "Timer scheduling failed"}), 500
@@ -368,7 +395,13 @@ def http_update_contact():
 
 
 def run_bot() -> None:
-    application.run_polling()
+    logger.info("Инициализация бота, отключаем webhook и запускаем polling…")
+    # На случай, если когда-то был включён webhook — выключим, иначе апдейты не придут в polling
+    try:
+        # drop_pending_updates=True, чтобы очистить залежавшиеся апдейты от старого контура
+        application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
+    except Exception as e:
+        logger.exception("run_polling завершился с ошибкой: %s", e)
 
 
 @app.route("/debug", methods=["GET"])  # только для отладки
