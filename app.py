@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import asyncio
+import httpx
 from datetime import datetime
 from threading import Thread, Lock, Timer
 
@@ -125,13 +126,29 @@ application.add_handler(CommandHandler("start", cmd_start))
 
 
 def send_message_async(chat_id: int, text: str) -> None:
+    """Пытаемся отправить через PTB; при неудаче — через Telegram HTTP API."""
+    # 1) Попытка через PTB (event loop)
     try:
         application.create_task(application.bot.send_message(chat_id=chat_id, text=text))
+        logger.info("PTB send_message запланирован: chat_id=%s", chat_id)
+        return
     except Exception as e:
-        logger.exception("Ошибка планирования отправки сообщения: %s", e)
+        logger.warning("PTB create_task не удался, fallback к HTTP API: %s", e)
+
+    # 2) Резерв: прямой HTTP вызов
+    try:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        resp = httpx.post(url, json={"chat_id": chat_id, "text": text}, timeout=10.0)
+        if resp.status_code >= 400:
+            logger.error("HTTP API sendMessage %s: %s", resp.status_code, resp.text)
+        else:
+            logger.info("HTTP API sendMessage OK: chat_id=%s", chat_id)
+    except Exception as e:
+        logger.exception("HTTP API отправка не удалась: %s", e)
 
 
 def _reminder1(user_id: int) -> None:
+    logger.info("_reminder1 fired for %s", user_id)
     with data_lock:
         rec = user_data.get(user_id)
     if not rec or rec.get("status") != "не дома":
@@ -148,6 +165,7 @@ def _reminder1(user_id: int) -> None:
 
 
 def _reminder2(user_id: int) -> None:
+    logger.info("_reminder2 fired for %s", user_id)
     with data_lock:
         rec = user_data.get(user_id)
     if not rec or rec.get("status") != "не дома":
@@ -164,6 +182,7 @@ def _reminder2(user_id: int) -> None:
 
 
 def _emergency(user_id: int) -> None:
+    logger.info("_emergency fired for %s", user_id)
     with data_lock:
         rec = user_data.get(user_id)
     if not rec or rec.get("status") != "не дома":
@@ -378,3 +397,5 @@ if __name__ == "__main__":
     Thread(target=run_flask, daemon=True).start()
     logger.info("Инициализация бота, polling…")
     application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
+
+
