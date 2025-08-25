@@ -397,5 +397,3 @@ if __name__ == "__main__":
     Thread(target=run_flask, daemon=True).start()
     logger.info("Инициализация бота, polling…")
     application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
-
-
