@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 # -------------------- Конфиг --------------------
-BOT_TOKEN = os.environ.get("8120075611:AAEdTw_LtsjO3OYYzjeHymdD0TyVraFZ66A")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     raise RuntimeError("Переменная окружения BOT_TOKEN не установлена")
 
