@@ -113,14 +113,18 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 timer_seconds=3600,
             )
             db.add(user)
+            db.commit()
+            await update.message.reply_text(
+                "✅ Ты зарегистрирован в системе! Запускай приложение по кнопке ниже"
+            )
         else:
+            # Обновляем данные существующего пользователя
             user.username = username
             user.chat_id = user_id
-        db.commit()
-
-    await update.message.reply_text(
-        "✅ Ты зарегистрирован в системе! Запускай приложение по кнопке ниже"
-    )
+            db.commit()
+            await update.message.reply_text(
+                "✅ Добро пожаловать обратно! Запускай приложение по кнопке ниже"
+            )
 
 
 application.add_handler(CommandHandler("start", cmd_start))
@@ -140,25 +144,16 @@ application.add_error_handler(error_handler)
 
 
 def send_message_async(chat_id: int, text: str) -> None:
-    """Пытаемся отправить через PTB; при неудаче — через Telegram HTTP API."""
-    # 1) Попытка через PTB (event loop)
-    try:
-        application.create_task(application.bot.send_message(chat_id=chat_id, text=text))
-        logger.info("PTB send_message запланирован: chat_id=%s", chat_id)
-        return
-    except Exception as e:
-        logger.warning("PTB create_task не удался, fallback к HTTP API: %s", e)
-
-    # 2) Резерв: прямой HTTP вызов
+    """Отправляет сообщение через Telegram HTTP API (надежнее для threading.Timer)"""
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
         resp = httpx.post(url, json={"chat_id": chat_id, "text": text}, timeout=10.0)
         if resp.status_code >= 400:
             logger.error("HTTP API sendMessage %s: %s", resp.status_code, resp.text)
         else:
-            logger.info("HTTP API sendMessage OK: chat_id=%s", chat_id)
+            logger.info("HTTP API sendMessage OK: chat_id=%s, text=%s", chat_id, text[:50])
     except Exception as e:
-        logger.exception("HTTP API отправка не удалась: %s", e)
+        logger.exception("HTTP API отправка не удалась: chat_id=%s, error=%s", chat_id, e)
 
 
 def _reminder1(user_id: int) -> None:
@@ -332,17 +327,32 @@ def http_get_status():
     try:
         user_id = request.args.get("user_id")
         if user_id is None:
-            return jsonify({"status": "unknown", "emergency_contact_set": False, "timer_seconds": 3600}), 200
+            return jsonify({"status": "unknown", "emergency_contact_set": False, "timer_seconds": 3600, "time_remaining": None}), 200
         user_id = int(user_id)
         user_data = get_user(user_id)
+        status = user_data.get("status") or "дома"
+        
+        # Вычисляем оставшееся время, если пользователь "не дома"
+        time_remaining = None
+        if status == "не дома":
+            with get_db_session() as db:
+                user = db.query(User).filter(User.user_id == user_id).first()
+                if user and user.left_home_time:
+                    timer_seconds = user.timer_seconds or 3600
+                    elapsed = (datetime.now(timezone.utc) - user.left_home_time).total_seconds()
+                    time_remaining = max(0, timer_seconds - elapsed)
+                    if time_remaining <= 0:
+                        time_remaining = 0
+        
         return jsonify({
-            "status": user_data.get("status") or "дома",
+            "status": status,
             "emergency_contact_set": bool(user_data.get("emergency_contact_username")),
             "timer_seconds": user_data.get("timer_seconds") or 3600,
+            "time_remaining": int(time_remaining) if time_remaining is not None else None,
         }), 200
     except Exception as e:
         logger.exception("Ошибка GET /status: %s", e)
-        return jsonify({"status": "дома", "emergency_contact_set": False, "timer_seconds": 3600}), 200
+        return jsonify({"status": "дома", "emergency_contact_set": False, "timer_seconds": 3600, "time_remaining": None}), 200
 
 
 @app.route("/contact", methods=["POST", "GET"])
