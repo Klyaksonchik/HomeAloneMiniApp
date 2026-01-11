@@ -4,4 +4,5 @@ python-telegram-bot==20.3
 sqlalchemy
 psycopg2-binary
 httpx
+gunicorn
 
