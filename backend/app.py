@@ -278,13 +278,18 @@ def http_update_status():
                     user.username = username
                 if timer_seconds is not None:
                     user.timer_seconds = timer_seconds
+            
+            # Проверяем экстренный контакт ДО выхода из контекста
+            if status == "не дома":
+                # Нельзя уходить из дома без указанного экстренного контакта
+                if not user.emergency_contact_username:
+                    return jsonify({"success": False, "error": "contact_required"}), 400
+            
             db.commit()
+            # Сохраняем timer_seconds для использования после выхода из контекста
+            saved_timer_seconds = user.timer_seconds
 
         if status == "не дома":
-            # Нельзя уходить из дома без указанного экстренного контакта
-            if not user.emergency_contact_username:
-                return jsonify({"success": False, "error": "contact_required"}), 400
-
             update_user(
                 user_id,
                 left_home_time=datetime.utcnow(),
@@ -292,11 +297,11 @@ def http_update_status():
             )
             cancel_all_jobs_for_user(user_id)
             try:
-                schedule_sequence_for_user(user_id, user.timer_seconds)
+                schedule_sequence_for_user(user_id, saved_timer_seconds)
             except Exception as e:
                 logger.exception("Ошибка планирования таймеров для %s: %s", user_id, e)
                 return jsonify({"success": False, "error": "Timer scheduling failed"}), 500
-            logger.info("Запущены таймеры для %s (таймер: %s сек)", user_id, user.timer_seconds)
+            logger.info("Запущены таймеры для %s (таймер: %s сек)", user_id, saved_timer_seconds)
         else:  # статус "дома"
             cancel_all_jobs_for_user(user_id)
             update_user(
