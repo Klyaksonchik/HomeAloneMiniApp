@@ -34,6 +34,7 @@ export default function App() {
   const [customTimerHours, setCustomTimerHours] = useState(1);
   const [customTimerMinutes, setCustomTimerMinutes] = useState(0);
   const [useCustomTimer, setUseCustomTimer] = useState(false);
+  const [timerExpired, setTimerExpired] = useState(false);
 
   const happyDog = "https://i.postimg.cc/g2c0nwhz/2025-08-19-16-37-23.png";
   const sadDog = "https://i.postimg.cc/pLjFJ5TD/2025-08-19-16-33-44.png";
@@ -48,17 +49,29 @@ export default function App() {
 
   useEffect(() => {
     if (!userId) return;
-    axios
-      .get(`${BACKEND_URL}/status`, { params: { user_id: userId } })
-      .then((r) => {
+    const loadStatus = async () => {
+      try {
+        const r = await axios.get(`${BACKEND_URL}/status`, { params: { user_id: userId } });
         const serverStatus = r?.data?.status;
         setIsHome(serverStatus === "не дома" ? false : true);
         setHasServerContact(Boolean(r?.data?.emergency_contact_set));
         if (r?.data?.timer_seconds) {
           setTimerSeconds(r.data.timer_seconds);
         }
-      })
-      .catch(() => {});
+        // Восстанавливаем таймер, если пользователь "не дома"
+        if (serverStatus === "не дома" && r?.data?.time_remaining !== null && r?.data?.time_remaining !== undefined) {
+          const remaining = Math.max(0, Math.floor(r.data.time_remaining));
+          setTimeLeft(remaining);
+          setTimerExpired(remaining <= 0);
+        }
+      } catch (e) {
+        console.error("Ошибка загрузки статуса:", e);
+      }
+    };
+    loadStatus();
+    // Синхронизируем каждые 10 секунд
+    const syncInterval = setInterval(loadStatus, 10000);
+    return () => clearInterval(syncInterval);
   }, [userId]);
 
   useEffect(() => {
@@ -89,12 +102,19 @@ export default function App() {
   }, [userId]);
 
   useEffect(() => {
-    if (!timeLeft) return;
+    if (!timeLeft && timeLeft !== 0) return;
     const id = setInterval(() => {
-      setTimeLeft((prev) => (prev && prev > 0 ? prev - 1 : 0));
+      setTimeLeft((prev) => {
+        if (prev === null) return null;
+        const newValue = prev > 0 ? prev - 1 : 0;
+        if (newValue === 0 && !timerExpired) {
+          setTimerExpired(true);
+        }
+        return newValue;
+      });
     }, 1000);
     return () => clearInterval(id);
-  }, [timeLeft]);
+  }, [timeLeft, timerExpired]);
 
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
@@ -134,6 +154,7 @@ export default function App() {
 
         setIsHome(false);
         setTimeLeft(finalTimerSeconds);
+        setTimerExpired(false);
         await axios.post(`${BACKEND_URL}/status`, {
           user_id: Number(userId),
           status: "не дома",
@@ -150,6 +171,7 @@ export default function App() {
       } else {
         setIsHome(true);
         setTimeLeft(null);
+        setTimerExpired(false);
         await axios.post(`${BACKEND_URL}/status`, {
           user_id: Number(userId),
           status: "дома",
@@ -262,8 +284,14 @@ export default function App() {
 
       <img src={isHome ? happyDog : sadDog} alt="dog" className="dog-image" />
 
-      {!isHome && timeLeft !== null && (
+      {!isHome && timeLeft !== null && timeLeft > 0 && (
         <div className="timer">Осталось: {formatTime(timeLeft)}</div>
+      )}
+
+      {!isHome && timerExpired && (
+        <div className="timer-expired">
+          ⏰ Время вышло! Если ты в порядке, сдвинь слайдер в положение «Дома»
+        </div>
       )}
 
       {/* Настройка таймера */}
