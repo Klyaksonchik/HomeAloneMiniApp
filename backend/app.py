@@ -1,7 +1,7 @@
 import os
 import logging
 import httpx
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import Thread, Timer
 from contextlib import contextmanager
 
@@ -48,7 +48,7 @@ def get_db_session():
 
 
 def get_user(user_id: int):
-    """Получить пользователя из БД"""
+    """Получить пользователя из БД и вернуть словарь с данными"""
     with get_db_session() as db:
         user = db.query(User).filter(User.user_id == user_id).first()
         if not user:
@@ -61,7 +61,17 @@ def get_user(user_id: int):
             db.add(user)
             db.commit()
             db.refresh(user)
-        return user
+        # Возвращаем словарь, чтобы избежать detached instance
+        return {
+            "user_id": user.user_id,
+            "status": user.status,
+            "username": user.username,
+            "chat_id": user.chat_id,
+            "emergency_contact_username": user.emergency_contact_username,
+            "emergency_contact_user_id": user.emergency_contact_user_id,
+            "timer_seconds": user.timer_seconds,
+            "warnings_sent": user.warnings_sent,
+        }
 
 
 def update_user(user_id: int, **kwargs):
@@ -74,7 +84,7 @@ def update_user(user_id: int, **kwargs):
         else:
             for key, value in kwargs.items():
                 setattr(user, key, value)
-            user.updated_at = datetime.utcnow()
+            user.updated_at = datetime.now(timezone.utc)
         db.commit()
         return user
 
@@ -153,8 +163,8 @@ def send_message_async(chat_id: int, text: str) -> None:
 
 def _reminder1(user_id: int) -> None:
     logger.info("_reminder1 fired for %s", user_id)
-    user = get_user(user_id)
-    if not user or user.status != "не дома":
+    user_data = get_user(user_id)
+    if not user_data or user_data.get("status") != "не дома":
         return
     send_message_async(user_id, "🤗 Ты в порядке? Отметься, что ты дома.")
     update_user(user_id, warnings_sent=1)
@@ -165,8 +175,8 @@ def _reminder1(user_id: int) -> None:
 
 def _reminder2(user_id: int) -> None:
     logger.info("_reminder2 fired for %s", user_id)
-    user = get_user(user_id)
-    if not user or user.status != "не дома":
+    user_data = get_user(user_id)
+    if not user_data or user_data.get("status") != "не дома":
         return
     send_message_async(user_id, "🤗 Напоминание! Если ты уже дома — отметься.")
     update_user(user_id, warnings_sent=2)
@@ -177,12 +187,12 @@ def _reminder2(user_id: int) -> None:
 
 def _emergency(user_id: int) -> None:
     logger.info("_emergency fired for %s", user_id)
-    user = get_user(user_id)
-    if not user or user.status != "не дома":
+    user_data = get_user(user_id)
+    if not user_data or user_data.get("status") != "не дома":
         return
 
-    emergency_contact_user_id = user.emergency_contact_user_id
-    emergency_contact_username = user.emergency_contact_username
+    emergency_contact_user_id = user_data.get("emergency_contact_user_id")
+    emergency_contact_username = user_data.get("emergency_contact_username")
 
     if not emergency_contact_user_id and emergency_contact_username:
         with get_db_session() as db:
@@ -199,7 +209,7 @@ def _emergency(user_id: int) -> None:
         return
 
     # Имя для отображения: предпочитаем username, иначе id
-    display_name = user.username or f"id {user_id}"
+    display_name = user_data.get("username") or f"id {user_id}"
     send_message_async(
         emergency_contact_user_id,
         f"🚨 Твой друг {display_name} не выходит на связь. Проверь, всё ли с ним в порядке."
@@ -220,10 +230,10 @@ def cancel_all_jobs_for_user(user_id: int) -> None:
 
 def schedule_sequence_for_user(user_id: int, timer_seconds: int = None) -> None:
     """Планирует цепочку таймеров для пользователя"""
-    user = get_user(user_id)
+    user_data = get_user(user_id)
     # Используем таймер пользователя, если не указан явно
     if timer_seconds is None:
-        timer_seconds = user.timer_seconds if user else 3600
+        timer_seconds = user_data.get("timer_seconds") if user_data else 3600
     
     # Первый таймер на указанное время
     t1 = Timer(timer_seconds, _reminder1, args=(user_id,))
@@ -292,7 +302,7 @@ def http_update_status():
         if status == "не дома":
             update_user(
                 user_id,
-                left_home_time=datetime.utcnow(),
+                left_home_time=datetime.now(timezone.utc),
                 warnings_sent=0
             )
             cancel_all_jobs_for_user(user_id)
@@ -324,11 +334,11 @@ def http_get_status():
         if user_id is None:
             return jsonify({"status": "unknown", "emergency_contact_set": False, "timer_seconds": 3600}), 200
         user_id = int(user_id)
-        user = get_user(user_id)
+        user_data = get_user(user_id)
         return jsonify({
-            "status": user.status or "дома",
-            "emergency_contact_set": bool(user.emergency_contact_username),
-            "timer_seconds": user.timer_seconds or 3600,
+            "status": user_data.get("status") or "дома",
+            "emergency_contact_set": bool(user_data.get("emergency_contact_username")),
+            "timer_seconds": user_data.get("timer_seconds") or 3600,
         }), 200
     except Exception as e:
         logger.exception("Ошибка GET /status: %s", e)
@@ -379,8 +389,8 @@ def http_update_contact():
     except Exception:
         return jsonify({"emergency_contact": ""}), 200
 
-    user = get_user(user_id)
-    value = user.emergency_contact_username if user and user.emergency_contact_username else ""
+    user_data = get_user(user_id)
+    value = user_data.get("emergency_contact_username") if user_data and user_data.get("emergency_contact_username") else ""
     return jsonify({"emergency_contact": value}), 200
 
 
@@ -411,8 +421,8 @@ def http_timer():
     except Exception:
         return jsonify({"timer_seconds": 3600}), 200
 
-    user = get_user(user_id)
-    return jsonify({"timer_seconds": user.timer_seconds if user else 3600}), 200
+    user_data = get_user(user_id)
+    return jsonify({"timer_seconds": user_data.get("timer_seconds") if user_data else 3600}), 200
 
 
 def run_flask() -> None:
