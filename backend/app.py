@@ -114,6 +114,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             )
             db.add(user)
             db.commit()
+            logger.info("✅ Новый пользователь зарегистрирован: user_id=%s, username=%s", user_id, username)
             await update.message.reply_text(
                 "✅ Ты зарегистрирован в системе! Запускай приложение по кнопке ниже"
             )
@@ -122,6 +123,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             user.username = username
             user.chat_id = user_id
             db.commit()
+            logger.info("✅ Пользователь обновлен: user_id=%s, username=%s", user_id, username)
             await update.message.reply_text(
                 "✅ Добро пожаловать обратно! Запускай приложение по кнопке ниже"
             )
@@ -149,47 +151,59 @@ def send_message_async(chat_id: int, text: str) -> None:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
         resp = httpx.post(url, json={"chat_id": chat_id, "text": text}, timeout=10.0)
         if resp.status_code >= 400:
-            logger.error("HTTP API sendMessage %s: %s", resp.status_code, resp.text)
+            logger.error("❌ HTTP API sendMessage FAILED: chat_id=%s, status=%s, response=%s", 
+                        chat_id, resp.status_code, resp.text[:200])
         else:
-            logger.info("HTTP API sendMessage OK: chat_id=%s, text=%s", chat_id, text[:50])
+            logger.info("✅ Сообщение отправлено: chat_id=%s, text=%s", chat_id, text[:50])
+    except httpx.TimeoutException:
+        logger.error("⏱️ Timeout при отправке сообщения: chat_id=%s", chat_id)
     except Exception as e:
-        logger.exception("HTTP API отправка не удалась: chat_id=%s, error=%s", chat_id, e)
+        logger.exception("❌ HTTP API отправка не удалась: chat_id=%s, error=%s", chat_id, e)
 
 
 def _reminder1(user_id: int) -> None:
-    logger.info("_reminder1 fired for %s", user_id)
+    """Первое напоминание пользователю"""
+    logger.info("🔔 _reminder1 сработал для user_id=%s", user_id)
     user_data = get_user(user_id)
     if not user_data or user_data.get("status") != "не дома":
+        logger.info("⏭️ Пропуск _reminder1: пользователь уже дома или не найден (user_id=%s)", user_id)
         return
     send_message_async(user_id, "🤗 Ты в порядке? Отметься, что ты дома.")
     update_user(user_id, warnings_sent=1)
     t2 = Timer(REMINDER_2_DELAY, _reminder2, args=(user_id,))
     jobs[f"{user_id}:rem2"] = t2
     t2.start()
+    logger.info("⏰ Запущен таймер для _reminder2 (user_id=%s, delay=%s сек)", user_id, REMINDER_2_DELAY)
 
 
 def _reminder2(user_id: int) -> None:
-    logger.info("_reminder2 fired for %s", user_id)
+    """Второе напоминание пользователю"""
+    logger.info("🔔 _reminder2 сработал для user_id=%s", user_id)
     user_data = get_user(user_id)
     if not user_data or user_data.get("status") != "не дома":
+        logger.info("⏭️ Пропуск _reminder2: пользователь уже дома или не найден (user_id=%s)", user_id)
         return
     send_message_async(user_id, "🤗 Напоминание! Если ты уже дома — отметься.")
     update_user(user_id, warnings_sent=2)
     t3 = Timer(EMERGENCY_DELAY, _emergency, args=(user_id,))
     jobs[f"{user_id}:emerg"] = t3
     t3.start()
+    logger.info("⏰ Запущен таймер для _emergency (user_id=%s, delay=%s сек)", user_id, EMERGENCY_DELAY)
 
 
 def _emergency(user_id: int) -> None:
-    logger.info("_emergency fired for %s", user_id)
+    """Экстренное уведомление контакту"""
+    logger.info("🚨 _emergency сработал для user_id=%s", user_id)
     user_data = get_user(user_id)
     if not user_data or user_data.get("status") != "не дома":
+        logger.info("⏭️ Пропуск _emergency: пользователь уже дома или не найден (user_id=%s)", user_id)
         return
 
     emergency_contact_user_id = user_data.get("emergency_contact_user_id")
     emergency_contact_username = user_data.get("emergency_contact_username")
 
     if not emergency_contact_user_id and emergency_contact_username:
+        logger.info("🔍 Поиск экстренного контакта по username: %s", emergency_contact_username)
         with get_db_session() as db:
             contact_user = db.query(User).filter(
                 User.username == emergency_contact_username,
@@ -198,13 +212,20 @@ def _emergency(user_id: int) -> None:
             if contact_user:
                 emergency_contact_user_id = contact_user.chat_id
                 update_user(user_id, emergency_contact_user_id=emergency_contact_user_id)
+                logger.info("✅ Найден экстренный контакт: user_id=%s, chat_id=%s", 
+                          contact_user.user_id, emergency_contact_user_id)
+            else:
+                logger.warning("⚠️ Экстренный контакт не найден в БД: username=%s", emergency_contact_username)
 
     if not emergency_contact_user_id:
+        logger.error("❌ Не удалось найти экстренный контакт для user_id=%s", user_id)
         send_message_async(user_id, "⚠️ Экстренный контакт ещё не активировал бота или не указан.")
         return
 
     # Имя для отображения: предпочитаем username, иначе id
     display_name = user_data.get("username") or f"id {user_id}"
+    logger.info("📤 Отправка экстренного уведомления контакту: chat_id=%s, пользователь=%s", 
+               emergency_contact_user_id, display_name)
     send_message_async(
         emergency_contact_user_id,
         f"🚨 Твой друг {display_name} не выходит на связь. Проверь, всё ли с ним в порядке."
@@ -213,14 +234,19 @@ def _emergency(user_id: int) -> None:
 
 
 def cancel_all_jobs_for_user(user_id: int) -> None:
+    """Отменяет все активные таймеры для пользователя"""
     keys = [f"{user_id}:rem1", f"{user_id}:rem2", f"{user_id}:emerg"]
+    cancelled = 0
     for k in keys:
         job = jobs.pop(k, None)
         if job:
             try:
                 job.cancel()
-            except Exception:
-                pass
+                cancelled += 1
+            except Exception as e:
+                logger.warning("⚠️ Ошибка при отмене таймера %s: %s", k, e)
+    if cancelled > 0:
+        logger.info("⏹️ Отменено таймеров для user_id=%s: %s", user_id, cancelled)
 
 
 def schedule_sequence_for_user(user_id: int, timer_seconds: int = None) -> None:
@@ -230,10 +256,12 @@ def schedule_sequence_for_user(user_id: int, timer_seconds: int = None) -> None:
     if timer_seconds is None:
         timer_seconds = user_data.get("timer_seconds") if user_data else 3600
     
+    logger.info("⏰ Планирование таймеров для user_id=%s: timer_seconds=%s", user_id, timer_seconds)
     # Первый таймер на указанное время
     t1 = Timer(timer_seconds, _reminder1, args=(user_id,))
     jobs[f"{user_id}:rem1"] = t1
     t1.start()
+    logger.info("✅ Запущен первый таймер для user_id=%s (через %s сек)", user_id, timer_seconds)
 
 
 # -------------------- Flask app --------------------
@@ -295,6 +323,7 @@ def http_update_status():
             saved_timer_seconds = user.timer_seconds
 
         if status == "не дома":
+            logger.info("🚶 Пользователь user_id=%s переключился в статус 'не дома'", user_id)
             update_user(
                 user_id,
                 left_home_time=datetime.now(timezone.utc),
@@ -304,10 +333,11 @@ def http_update_status():
             try:
                 schedule_sequence_for_user(user_id, saved_timer_seconds)
             except Exception as e:
-                logger.exception("Ошибка планирования таймеров для %s: %s", user_id, e)
+                logger.exception("❌ Ошибка планирования таймеров для user_id=%s: %s", user_id, e)
                 return jsonify({"success": False, "error": "Timer scheduling failed"}), 500
-            logger.info("Запущены таймеры для %s (таймер: %s сек)", user_id, saved_timer_seconds)
+            logger.info("✅ Запущены таймеры для user_id=%s (таймер: %s сек)", user_id, saved_timer_seconds)
         else:  # статус "дома"
+            logger.info("🏠 Пользователь user_id=%s переключился в статус 'дома'", user_id)
             cancel_all_jobs_for_user(user_id)
             update_user(
                 user_id,
@@ -436,7 +466,12 @@ def http_timer():
 
 
 def run_flask() -> None:
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    """Запуск Flask сервера"""
+    port = int(os.environ.get("PORT", 5000))
+    logger.info("Запуск Flask сервера на порту %s", port)
+    # Используем development server для совместимости с threading.Timer
+    # В production можно использовать gunicorn, но тогда нужно переделать таймеры
+    app.run(host="0.0.0.0", port=port, debug=False)
 
 
 @app.route("/debug", methods=["GET"])
@@ -457,13 +492,35 @@ if __name__ == "__main__":
     # Инициализация БД при первом запуске
     try:
         init_db()
-        logger.info("База данных инициализирована")
+        logger.info("✅ База данных инициализирована")
     except Exception as e:
-        logger.exception("Ошибка инициализации БД: %s", e)
+        logger.exception("❌ Ошибка инициализации БД: %s", e)
+        raise
 
+    # Проверка переменных окружения
+    if not BOT_TOKEN:
+        logger.error("❌ BOT_TOKEN не установлен!")
+        raise RuntimeError("BOT_TOKEN не установлен")
+    
+    port = int(os.environ.get("PORT", 5000))
+    logger.info("🚀 Запуск приложения на порту %s", port)
+    
     # Поднимаем Flask в фоне, а бота — в главном потоке
-    Thread(target=run_flask, daemon=True).start()
-    logger.info("Инициализация бота, polling…")
+    flask_thread = Thread(target=run_flask, daemon=True, name="FlaskThread")
+    flask_thread.start()
+    logger.info("✅ Flask сервер запущен в фоновом потоке")
+    
+    logger.info("🤖 Инициализация Telegram бота, polling…")
     # Ошибки Conflict обрабатываются через error_handler
-    application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
+    try:
+        application.run_polling(
+            drop_pending_updates=True, 
+            allowed_updates=Update.ALL_TYPES,
+            stop_signals=None  # Не останавливаем при сигналах, чтобы работал в Render
+        )
+    except KeyboardInterrupt:
+        logger.info("⏹️ Получен сигнал остановки")
+    except Exception as e:
+        logger.exception("❌ Критическая ошибка бота: %s", e)
+        raise
 
