@@ -10,6 +10,7 @@ from flask_cors import CORS, cross_origin
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.error import Conflict
 
 from models import SessionLocal, User, init_db
 
@@ -113,6 +114,19 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 application.add_handler(CommandHandler("start", cmd_start))
+
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик ошибок для бота"""
+    error = context.error
+    if isinstance(error, Conflict):
+        logger.warning("Конфликт: другой экземпляр бота уже запущен. Ожидание...")
+        # Бот автоматически переподключится
+        return
+    logger.exception("Необработанная ошибка: %s", error)
+
+
+application.add_error_handler(error_handler)
 
 
 def send_message_async(chat_id: int, text: str) -> None:
@@ -425,5 +439,6 @@ if __name__ == "__main__":
     # Поднимаем Flask в фоне, а бота — в главном потоке
     Thread(target=run_flask, daemon=True).start()
     logger.info("Инициализация бота, polling…")
+    # Ошибки Conflict обрабатываются через error_handler
     application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
 
