@@ -171,10 +171,9 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     """Обработчик ошибок для бота"""
     error = context.error
     if isinstance(error, Conflict):
-        logger.error("❌ Conflict 409: другой экземпляр бота уже запущен. Останавливаем polling.")
-        # Останавливаем polling при конфликте
-        if application.running:
-            application.stop()
+        # Conflict 409 - это нормально при деплое, когда старый экземпляр еще работает
+        # Не останавливаем polling, просто логируем - система сама переключится на новый экземпляр
+        logger.warning("⚠️ Conflict 409: другой экземпляр бота уже запущен. Это нормально при деплое. Продолжаем работу...")
         return
     logger.exception("Необработанная ошибка: %s", error)
 
@@ -598,9 +597,10 @@ if __name__ == "__main__":
                 stop_signals=None  # Не останавливаем при сигналах, чтобы работал в Render
             )
         except Conflict as e:
-            logger.error("❌ Conflict 409 при запуске polling: %s. Останавливаем.", e)
-            # Не перезапускаем при конфликте - просто завершаем
-            logger.info("⏹️ Завершение работы из-за конфликта")
+            # Conflict 409 при запуске - это нормально при деплое, когда старый экземпляр еще работает
+            # Просто логируем и завершаем - Render автоматически переключится на новый экземпляр
+            logger.warning("⚠️ Conflict 409 при запуске polling: %s. Это нормально при деплое. Завершаем этот экземпляр.", e)
+            logger.info("⏹️ Завершение работы из-за конфликта (новый экземпляр должен запуститься)")
         except KeyboardInterrupt:
             logger.info("⏹️ Получен сигнал остановки")
         except Exception as e:
