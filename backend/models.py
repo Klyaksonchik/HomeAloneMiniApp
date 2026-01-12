@@ -16,7 +16,7 @@ class User(Base):
     status = Column(String(20), default="дома")  # "дома" или "не дома"
     emergency_contact_username = Column(String(255), nullable=True)
     emergency_contact_user_id = Column(BigInteger, nullable=True)
-    left_home_time = Column(DateTime, nullable=True)
+    left_home_time = Column(DateTime(timezone=True), nullable=True)
     warnings_sent = Column(Integer, default=0)
     timer_seconds = Column(Integer, default=3600)  # Таймер в секундах (по умолчанию 1 час)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
