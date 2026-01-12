@@ -7,6 +7,7 @@ const LS_KEY_TIMER = "homealone_timer";
 
 // Варианты таймера в секундах
 const TIMER_PRESETS = [
+  { label: "1 минута", value: 1 * 60 }, // Для тестирования
   { label: "30 минут", value: 30 * 60 },
   { label: "1 час", value: 60 * 60 },
   { label: "2 часа", value: 2 * 60 * 60 },
@@ -251,9 +252,27 @@ export default function App() {
   const isTelegramReady = !!userId;
   const toggleDisabled = !isTelegramReady || busy || !(contact && contact.trim().length > 1);
 
+  // Функция для получения текста выбранного таймера
+  const getSelectedTimerText = () => {
+    if (useCustomTimer) {
+      const totalMinutes = customTimerHours * 60 + customTimerMinutes;
+      if (totalMinutes === 0) return "Не выбран";
+      if (customTimerHours > 0 && customTimerMinutes > 0) {
+        return `${customTimerHours}ч ${customTimerMinutes}м`;
+      } else if (customTimerHours > 0) {
+        return `${customTimerHours}ч`;
+      } else {
+        return `${customTimerMinutes}м`;
+      }
+    } else {
+      const preset = TIMER_PRESETS.find(p => p.value === timerSeconds);
+      return preset ? preset.label : "Не выбран";
+    }
+  };
+
   return (
     <div className={`app ${!isHome ? 'not-home' : ''}`}>
-      <h1>Home Alone App</h1>
+      <h1>Твой питомец в безопасности</h1>
 
       {!isTelegramReady && (
         <div style={{ marginBottom: 12, color: "#a00", fontWeight: "bold" }}>
@@ -280,6 +299,11 @@ export default function App() {
           ? "Когда уходишь из дома, сдвинь слайдер в положение «Не дома»"
           : "Когда вернёшься домой, сдвинь слайдер в положение «Дома»!"
         }
+      </div>
+
+      {/* Показываем выбранный таймер всегда */}
+      <div className="selected-timer-display">
+        ⏰ Выбранный таймер: <strong>{getSelectedTimerText()}</strong>
       </div>
 
       <img src={isHome ? happyDog : sadDog} alt="dog" className="dog-image" />
@@ -343,35 +367,29 @@ export default function App() {
                   <span style={{ fontWeight: 600 }}>Свой таймер</span>
                 </label>
                 {useCustomTimer && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <input
-                      type="number"
-                      min="0"
-                      max="24"
-                      value={customTimerHours}
-                      onChange={(e) => setCustomTimerHours(parseInt(e.target.value) || 0)}
-                      style={{
-                        width: "60px",
-                        padding: "8px",
-                        borderRadius: "8px",
-                        border: "2px solid #e0e0e0",
-                      }}
-                    />
-                    <span>часов</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="59"
-                      value={customTimerMinutes}
-                      onChange={(e) => setCustomTimerMinutes(parseInt(e.target.value) || 0)}
-                      style={{
-                        width: "60px",
-                        padding: "8px",
-                        borderRadius: "8px",
-                        border: "2px solid #e0e0e0",
-                      }}
-                    />
-                    <span>минут</span>
+                  <div className="custom-timer-inputs">
+                    <div className="timer-input-group">
+                      <label>Часы</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="24"
+                        value={customTimerHours}
+                        onChange={(e) => setCustomTimerHours(parseInt(e.target.value) || 0)}
+                        className="timer-input"
+                      />
+                    </div>
+                    <div className="timer-input-group">
+                      <label>Минуты</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={customTimerMinutes}
+                        onChange={(e) => setCustomTimerMinutes(parseInt(e.target.value) || 0)}
+                        className="timer-input"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
