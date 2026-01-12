@@ -47,6 +47,24 @@ def get_db_session():
         session.close()
 
 
+def ensure_utc_aware(dt):
+    """Преобразует datetime в UTC-aware формат"""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def fix_user_left_home_time(user):
+    """Исправляет left_home_time пользователя, если оно timezone-naive"""
+    if user and user.left_home_time and user.left_home_time.tzinfo is None:
+        logger.warning("⚠️ Исправление timezone-naive left_home_time для user_id=%s", user.user_id)
+        user.left_home_time = user.left_home_time.replace(tzinfo=timezone.utc)
+        return True
+    return False
+
+
 def get_user(user_id: int):
     """Получить пользователя из БД и вернуть словарь с данными"""
     with get_db_session() as db:
@@ -136,8 +154,10 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     """Обработчик ошибок для бота"""
     error = context.error
     if isinstance(error, Conflict):
-        logger.warning("Конфликт: другой экземпляр бота уже запущен. Ожидание...")
-        # Бот автоматически переподключится
+        logger.error("❌ Conflict 409: другой экземпляр бота уже запущен. Останавливаем polling.")
+        # Останавливаем polling при конфликте
+        if application.running:
+            application.stop()
         return
     logger.exception("Необработанная ошибка: %s", error)
 
@@ -367,32 +387,51 @@ def http_get_status():
     try:
         user_id = request.args.get("user_id")
         if user_id is None:
-            return jsonify({"status": "unknown", "emergency_contact_set": False, "timer_seconds": 3600, "time_remaining": None}), 200
-        user_id = int(user_id)
+            return jsonify({"error": "user_id is required"}), 400
+        
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid user_id"}), 400
+        
         user_data = get_user(user_id)
         status = user_data.get("status") or "дома"
         
         # Вычисляем оставшееся время, если пользователь "не дома"
         time_remaining = None
+        elapsed_seconds = None
+        left_home_time = None
+        
         if status == "не дома":
             with get_db_session() as db:
                 user = db.query(User).filter(User.user_id == user_id).first()
                 if user and user.left_home_time:
-                    timer_seconds = user.timer_seconds or 3600
-                    elapsed = (datetime.now(timezone.utc) - user.left_home_time).total_seconds()
-                    time_remaining = max(0, timer_seconds - elapsed)
-                    if time_remaining <= 0:
-                        time_remaining = 0
+                    # Исправляем timezone-naive, если нужно
+                    if fix_user_left_home_time(user):
+                        db.commit()
+                    
+                    left_home_time = user.left_home_time
+                    left_time = ensure_utc_aware(user.left_home_time)
+                    if left_time:
+                        timer_seconds = user.timer_seconds or 3600
+                        elapsed_seconds = (datetime.now(timezone.utc) - left_time).total_seconds()
+                        time_remaining = max(0, timer_seconds - elapsed_seconds)
+                        if time_remaining <= 0:
+                            time_remaining = 0
+        
+        logger.info("GET /status: user_id=%s, status=%s, left_home_time=%s, elapsed_seconds=%s", 
+                   user_id, status, left_home_time, elapsed_seconds)
         
         return jsonify({
             "status": status,
             "emergency_contact_set": bool(user_data.get("emergency_contact_username")),
             "timer_seconds": user_data.get("timer_seconds") or 3600,
             "time_remaining": int(time_remaining) if time_remaining is not None else None,
+            "elapsed_seconds": int(elapsed_seconds) if elapsed_seconds is not None else None,
         }), 200
     except Exception as e:
-        logger.exception("Ошибка GET /status: %s", e)
-        return jsonify({"status": "дома", "emergency_contact_set": False, "timer_seconds": 3600, "time_remaining": None}), 200
+        logger.exception("❌ Ошибка GET /status: %s", e)
+        return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
 
 @app.route("/contact", methods=["POST", "GET"])
@@ -520,17 +559,34 @@ if __name__ == "__main__":
     flask_thread.start()
     logger.info("✅ Flask сервер запущен в фоновом потоке")
     
-    logger.info("🤖 Инициализация Telegram бота, polling…")
-    # Ошибки Conflict обрабатываются через error_handler
-    try:
-        application.run_polling(
-            drop_pending_updates=True, 
-            allowed_updates=Update.ALL_TYPES,
-            stop_signals=None  # Не останавливаем при сигналах, чтобы работал в Render
-        )
-    except KeyboardInterrupt:
-        logger.info("⏹️ Получен сигнал остановки")
-    except Exception as e:
-        logger.exception("❌ Критическая ошибка бота: %s", e)
-        raise
+    # Защита: запускаем polling только если установлена переменная окружения
+    run_bot_polling = os.environ.get("RUN_BOT_POLLING", "1").strip().lower() in ("1", "true", "yes")
+    
+    if not run_bot_polling:
+        logger.info("⏸️ RUN_BOT_POLLING не установлен или равен 0. Polling не запускается.")
+        # Просто ждем, чтобы процесс не завершился
+        try:
+            while True:
+                import time
+                time.sleep(60)
+        except KeyboardInterrupt:
+            logger.info("⏹️ Получен сигнал остановки")
+    else:
+        logger.info("🤖 Инициализация Telegram бота, polling…")
+        # Ошибки Conflict обрабатываются через error_handler
+        try:
+            application.run_polling(
+                drop_pending_updates=True, 
+                allowed_updates=Update.ALL_TYPES,
+                stop_signals=None  # Не останавливаем при сигналах, чтобы работал в Render
+            )
+        except Conflict as e:
+            logger.error("❌ Conflict 409 при запуске polling: %s. Останавливаем.", e)
+            # Не перезапускаем при конфликте - просто завершаем
+            logger.info("⏹️ Завершение работы из-за конфликта")
+        except KeyboardInterrupt:
+            logger.info("⏹️ Получен сигнал остановки")
+        except Exception as e:
+            logger.exception("❌ Критическая ошибка бота: %s", e)
+            raise
 
