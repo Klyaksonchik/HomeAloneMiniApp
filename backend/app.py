@@ -23,11 +23,11 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     raise RuntimeError("Переменная окружения BOT_TOKEN не установлена")
 
-# Тестовые интервалы: 30/30/30 секунд. В проде можно заменить на часы.
+# Тестовые интервалы: сразу/30/30 секунд. В проде можно заменить на часы.
 TEST_MODE = True
-REMINDER_1_DELAY = 30 if TEST_MODE else 24 * 3600
-REMINDER_2_DELAY = 30 if TEST_MODE else 3600
-EMERGENCY_DELAY = 30 if TEST_MODE else 3600
+REMINDER_1_DELAY = 0 if TEST_MODE else 24 * 3600  # Сразу после истечения таймера
+REMINDER_2_DELAY = 30 if TEST_MODE else 3600  # 30 секунд после первого напоминания
+EMERGENCY_DELAY = 30 if TEST_MODE else 3600  # 30 секунд после второго напоминания
 
 # Ключи: f"{user_id}:rem1", f"{user_id}:rem2", f"{user_id}:emerg"
 jobs = {}
@@ -145,6 +145,23 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await update.message.reply_text(
                 "✅ Добро пожаловать обратно! Запускай приложение по кнопке ниже"
             )
+        
+        # Если у пользователя есть username, проверяем, не является ли он экстренным контактом для других пользователей
+        if username:
+            # Находим всех пользователей, у которых указан этот username как экстренный контакт
+            users_with_this_contact = db.query(User).filter(
+                User.emergency_contact_username == username,
+                User.emergency_contact_user_id.is_(None)  # Обновляем только тех, у кого еще не установлен ID
+            ).all()
+            
+            if users_with_this_contact:
+                updated_count = 0
+                for u in users_with_this_contact:
+                    u.emergency_contact_user_id = user_id  # Используем user_id как chat_id для отправки сообщений
+                    updated_count += 1
+                db.commit()
+                logger.info("🔗 Обновлен emergency_contact_user_id для %s пользователей, которые указали %s как экстренный контакт", 
+                          updated_count, username)
 
 
 application.add_handler(CommandHandler("start", cmd_start))
