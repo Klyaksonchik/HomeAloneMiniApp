@@ -212,25 +212,35 @@ def _emergency(user_id: int) -> None:
             if contact_user:
                 emergency_contact_user_id = contact_user.chat_id
                 update_user(user_id, emergency_contact_user_id=emergency_contact_user_id)
-                logger.info("✅ Найден экстренный контакт: user_id=%s, chat_id=%s", 
-                          contact_user.user_id, emergency_contact_user_id)
+                logger.info("✅ Найден экстренный контакт: emergency_contact_username=%s, contact_user.user_id=%s, contact_user.chat_id=%s", 
+                          emergency_contact_username, contact_user.user_id, emergency_contact_user_id)
             else:
-                logger.warning("⚠️ Экстренный контакт не найден в БД: username=%s", emergency_contact_username)
+                logger.warning("⚠️ Экстренный контакт не найден в БД: emergency_contact_username=%s", emergency_contact_username)
 
     if not emergency_contact_user_id:
-        logger.error("❌ Не удалось найти экстренный контакт для user_id=%s", user_id)
+        logger.error("❌ Не удалось найти экстренный контакт для user_id=%s, emergency_contact_username=%s", 
+                    user_id, emergency_contact_username)
         send_message_async(user_id, "⚠️ Экстренный контакт ещё не активировал бота или не указан.")
         return
 
     # Имя для отображения: предпочитаем username, иначе id
     display_name = user_data.get("username") or f"id {user_id}"
-    logger.info("📤 Отправка экстренного уведомления контакту: chat_id=%s, пользователь=%s", 
-               emergency_contact_user_id, display_name)
-    send_message_async(
-        emergency_contact_user_id,
-        f"🚨 Твой друг {display_name} не выходит на связь. Проверь, всё ли с ним в порядке."
-    )
-    send_message_async(user_id, "🚨 Экстренный контакт уведомлён! Если ты в порядке — отметься.")
+    logger.info("📤 Отправка экстренного уведомления: emergency_contact_username=%s, emergency_contact_user_id=%s, пользователь=%s", 
+               emergency_contact_username, emergency_contact_user_id, display_name)
+    try:
+        send_message_async(
+            emergency_contact_user_id,
+            f"🚨 Твой друг {display_name} не выходит на связь. Проверь, всё ли с ним в порядке."
+        )
+        logger.info("✅ Экстренное уведомление успешно отправлено контакту: emergency_contact_user_id=%s", emergency_contact_user_id)
+    except Exception as e:
+        logger.error("❌ Ошибка Telegram sendMessage при отправке экстренного уведомления: emergency_contact_user_id=%s, error=%s", 
+                   emergency_contact_user_id, e)
+    
+    try:
+        send_message_async(user_id, "🚨 Экстренный контакт уведомлён! Если ты в порядке — отметься.")
+    except Exception as e:
+        logger.error("❌ Ошибка Telegram sendMessage при отправке подтверждения пользователю: user_id=%s, error=%s", user_id, e)
 
 
 def cancel_all_jobs_for_user(user_id: int) -> None:
@@ -297,7 +307,7 @@ def http_update_status():
             if not user:
                 user = User(
                     user_id=user_id,
-                    status="дома",
+                    status=status,
                     username=username,
                     chat_id=user_id,
                     timer_seconds=timer_seconds if timer_seconds else 3600,
