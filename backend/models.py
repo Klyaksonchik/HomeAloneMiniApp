@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
+from sqlalchemy import create_engine, Column, Integer, BigInteger, String, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 import os
@@ -10,12 +10,12 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "users"
 
-    user_id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, primary_key=True)
     username = Column(String(255), nullable=True)
-    chat_id = Column(Integer, nullable=True)
+    chat_id = Column(BigInteger, nullable=True)
     status = Column(String(20), default="дома")  # "дома" или "не дома"
     emergency_contact_username = Column(String(255), nullable=True)
-    emergency_contact_user_id = Column(Integer, nullable=True)
+    emergency_contact_user_id = Column(BigInteger, nullable=True)
     left_home_time = Column(DateTime, nullable=True)
     warnings_sent = Column(Integer, default=0)
     timer_seconds = Column(Integer, default=3600)  # Таймер в секундах (по умолчанию 1 час)
