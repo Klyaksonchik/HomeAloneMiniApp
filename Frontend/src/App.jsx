@@ -38,8 +38,8 @@ export default function App() {
   const [useCustomTimer, setUseCustomTimer] = useState(false);
   const [timerExpired, setTimerExpired] = useState(false);
 
-  const happyDog = "https://i.postimg.cc/g2c0nwhz/2025-08-19-16-37-23.png";
-  const sadDog = "https://i.postimg.cc/pLjFJ5TD/2025-08-19-16-33-44.png";
+  const happyDog = "https://i.postimg.cc/BncFqv31/Snimok-ekrana-2025-08-19-v-16-37-23-copy.png";
+  const sadDog = "https://i.postimg.cc/KY8NKWm0/sad-dog.png";
 
   useEffect(() => {
     try {
