@@ -119,16 +119,10 @@ export default function App() {
   }, [timeLeft, timerExpired]);
 
   const formatTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+    // Формат MM:SS как на скриншоте
+    const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    if (hours > 0) {
-      return `${hours}ч ${minutes}м ${secs}с`;
-    } else if (minutes > 0) {
-      return `${minutes}м ${secs}с`;
-    } else {
-      return `${secs}с`;
-    }
+    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
   const toggleStatus = async () => {
@@ -302,16 +296,31 @@ export default function App() {
         }
       </div>
 
-      {/* Показываем выбранный таймер всегда */}
-      <div className="selected-timer-display">
-        ⏰ Выбранный таймер: <strong>{getSelectedTimerText()}</strong>
-      </div>
+      {/* Таймер и кнопка изменения */}
+      {!isHome && timeLeft !== null && timeLeft > 0 && (
+        <>
+          <div className="timer-large">{formatTime(timeLeft)}</div>
+          <button 
+            className="change-timer-btn"
+            onClick={() => setShowTimerSettings(!showTimerSettings)}
+            disabled={!isTelegramReady}
+          >
+            Изменить таймер
+          </button>
+        </>
+      )}
+
+      {isHome && !showTimerSettings && (
+        <button 
+          className="change-timer-btn"
+          onClick={() => setShowTimerSettings(!showTimerSettings)}
+          disabled={!isTelegramReady}
+        >
+          Изменить таймер
+        </button>
+      )}
 
       <img src={isHome ? happyDog : sadDog} alt="dog" className="dog-image" />
-
-      {!isHome && timeLeft !== null && timeLeft > 0 && (
-        <div className="timer">Осталось: {formatTime(timeLeft)}</div>
-      )}
 
       {!isHome && timerExpired && (
         <div className="timer-expired">
@@ -320,18 +329,9 @@ export default function App() {
       )}
 
       {/* Настройка таймера */}
-      {isHome && (
+      {showTimerSettings && (
         <div className="timer-section">
-          <button
-            onClick={() => setShowTimerSettings(!showTimerSettings)}
-            disabled={!isTelegramReady}
-            style={{ marginBottom: 10 }}
-          >
-            {showTimerSettings ? "Скрыть настройки таймера" : "Настроить таймер"}
-          </button>
-          
-          {showTimerSettings && (
-            <div className="timer-settings">
+          <div className="timer-settings">
               <div style={{ marginBottom: 15 }}>
                 <label style={{ display: "block", marginBottom: 10, fontWeight: 600 }}>
                   Выберите таймер:
@@ -343,14 +343,7 @@ export default function App() {
                       setTimerSeconds(preset.value);
                       setUseCustomTimer(false);
                     }}
-                    style={{
-                      margin: "5px",
-                      padding: "8px 16px",
-                      fontSize: "14px",
-                      background: timerSeconds === preset.value && !useCustomTimer 
-                        ? "linear-gradient(135deg, #27ae60 0%, #229954 100%)" 
-                        : "linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)",
-                    }}
+                    className={`timer-preset-btn ${timerSeconds === preset.value && !useCustomTimer ? 'active' : ''}`}
                   >
                     {preset.label}
                   </button>
@@ -414,30 +407,31 @@ export default function App() {
               <button onClick={saveTimer} disabled={!isTelegramReady}>
                 Сохранить таймер
               </button>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
       <div className="contact-section">
+        <div className="contact-header">
+          <span className="contact-label">Экстренный контакт</span>
+          {contact && (
+            <button 
+              className="contact-change-btn"
+              onClick={onContactAction} 
+              disabled={!isTelegramReady}
+            >
+              {editingContact ? "Сохранить" : "Изменить"}
+            </button>
+          )}
+        </div>
         <input
           className="contact-input"
-          placeholder="@username экстренного контакта"
+          placeholder="@введите экстренный контакт"
           value={contact}
           onChange={(e) => setContact(e.target.value)}
-          disabled={!isTelegramReady}
-          onClick={() => !contact && setEditingContact(true)}
+          disabled={!isTelegramReady || !editingContact}
+          onFocus={() => setEditingContact(true)}
         />
-        {contact && (
-          <button onClick={onContactAction} disabled={!isTelegramReady}>
-            {editingContact ? "Сохранить" : "Изменить"}
-          </button>
-        )}
-        {!hasServerContact && (
-          <div className="contact-hint">
-            Укажите экстренный контакт, чтобы включить режим «не дома»
-          </div>
-        )}
       </div>
     </div>
   );
