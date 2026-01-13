@@ -481,8 +481,25 @@ def http_update_contact():
                 )
                 db.add(user)
             user.emergency_contact_username = contact
-            # Сбросить известный ID, он будет резолвиться по username
-            user.emergency_contact_user_id = None
+            
+            # Сразу пытаемся найти контакт по username и обновить emergency_contact_user_id
+            # Это решает проблему, когда контакт уже зарегистрирован, но ID еще не установлен
+            contact_user = db.query(User).filter(
+                User.username == contact,
+                User.chat_id.isnot(None)
+            ).first()
+            
+            if contact_user:
+                # Контакт уже зарегистрирован - сразу обновляем ID
+                user.emergency_contact_user_id = contact_user.user_id
+                logger.info("✅ При сохранении контакта сразу найден emergency_contact_user_id: user_id=%s, contact=%s, contact_user_id=%s", 
+                          user_id, contact, contact_user.user_id)
+            else:
+                # Контакт еще не зарегистрирован - сбрасываем ID, он обновится при /start контакта
+                user.emergency_contact_user_id = None
+                logger.info("ℹ️ Контакт %s еще не зарегистрирован. ID обновится при /start контакта (user_id=%s)", 
+                          contact, user_id)
+            
             db.commit()
 
         return jsonify({"success": True})
