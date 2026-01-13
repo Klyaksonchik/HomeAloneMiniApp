@@ -119,10 +119,19 @@ export default function App() {
   }, [timeLeft, timerExpired]);
 
   const formatTime = (seconds) => {
-    // Формат MM:SS как на скриншоте
-    const minutes = Math.floor(seconds / 60);
+    // Если меньше 60 минут - формат MM:SS, иначе HH:MM:SS
+    const totalMinutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    
+    if (totalMinutes < 60) {
+      // Меньше часа - MM:SS
+      return `${String(totalMinutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    } else {
+      // Больше или равно часу - HH:MM:SS
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
   };
 
   const toggleStatus = async () => {
