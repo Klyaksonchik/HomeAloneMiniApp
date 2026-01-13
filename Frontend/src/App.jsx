@@ -14,6 +14,7 @@ const TIMER_PRESETS = [
   { label: "4 часа", value: 4 * 60 * 60 },
   { label: "8 часов", value: 8 * 60 * 60 },
   { label: "24 часа", value: 24 * 60 * 60 },
+  { label: "48 часов", value: 48 * 60 * 60 },
 ];
 
 export default function App() {
@@ -372,22 +373,38 @@ export default function App() {
                       <label>Часы</label>
                       <input
                         type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         min="0"
-                        max="24"
+                        max="168"
+                        step="1"
                         value={customTimerHours}
-                        onChange={(e) => setCustomTimerHours(parseInt(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setCustomTimerHours(Math.max(0, Math.min(168, val)));
+                        }}
+                        onFocus={(e) => e.target.select()}
                         className="timer-input"
+                        placeholder="0"
                       />
                     </div>
                     <div className="timer-input-group">
                       <label>Минуты</label>
                       <input
                         type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         min="0"
                         max="59"
+                        step="1"
                         value={customTimerMinutes}
-                        onChange={(e) => setCustomTimerMinutes(parseInt(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setCustomTimerMinutes(Math.max(0, Math.min(59, val)));
+                        }}
+                        onFocus={(e) => e.target.select()}
                         className="timer-input"
+                        placeholder="0"
                       />
                     </div>
                   </div>
