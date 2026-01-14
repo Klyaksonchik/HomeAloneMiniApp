@@ -204,7 +204,7 @@ def _reminder1(user_id: int) -> None:
     if not user_data or user_data.get("status") != "не дома":
         logger.info("⏭️ Пропуск _reminder1: пользователь уже дома или не найден (user_id=%s)", user_id)
         return
-    send_message_async(user_id, "🤗 Ты в порядке? Отметься, что ты дома.")
+    send_message_async(user_id, "🤗 Ты в порядке? Отметься, что ты дома. Сдвинь слайдер в положение \"ДОМА\".")
     update_user(user_id, warnings_sent=1)
     t2 = Timer(REMINDER_2_DELAY, _reminder2, args=(user_id,))
     jobs[f"{user_id}:rem2"] = t2
@@ -219,7 +219,7 @@ def _reminder2(user_id: int) -> None:
     if not user_data or user_data.get("status") != "не дома":
         logger.info("⏭️ Пропуск _reminder2: пользователь уже дома или не найден (user_id=%s)", user_id)
         return
-    send_message_async(user_id, "🤗 Напоминание! Если ты уже дома — отметься.")
+    send_message_async(user_id, "🤗 Напоминание! Если ты уже дома — отметься. Сдвинь слайдер в положение \"ДОМА\".")
     update_user(user_id, warnings_sent=2)
     t3 = Timer(EMERGENCY_DELAY, _emergency, args=(user_id,))
     jobs[f"{user_id}:emerg"] = t3
@@ -274,7 +274,7 @@ def _emergency(user_id: int) -> None:
                    emergency_contact_user_id, e)
     
     try:
-        send_message_async(user_id, "🚨 Экстренный контакт уведомлён! Если ты в порядке — отметься.")
+        send_message_async(user_id, f"🚨 Экстренный контакт @{emergency_contact_username} уведомлён! Если ты в порядке — отметься. Сдвинь слайдер в положение \"ДОМА\".")
     except Exception as e:
         logger.error("❌ Ошибка Telegram sendMessage при отправке подтверждения пользователю: user_id=%s, error=%s", user_id, e)
 
@@ -623,5 +623,4 @@ if __name__ == "__main__":
         except Exception as e:
             logger.exception("❌ Критическая ошибка бота: %s", e)
             raise
-
 
