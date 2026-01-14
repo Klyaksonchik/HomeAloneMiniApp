@@ -182,10 +182,20 @@ application.add_error_handler(error_handler)
 
 
 def send_message_async(chat_id: int, text: str) -> None:
-    """Отправляет сообщение через Telegram HTTP API (надежнее для threading.Timer)"""
+    """Отправляет сообщение через Telegram HTTP API (надежнее для threading.Timer)
+    
+    Явно указывает disable_notification=False для включения звука и вибрации.
+    Примечание: окончательное решение о звуке/вибрации принимает пользователь в настройках Telegram.
+    """
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-        resp = httpx.post(url, json={"chat_id": chat_id, "text": text}, timeout=10.0)
+        # Явно указываем disable_notification=False для включения уведомлений со звуком
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "disable_notification": False  # Гарантируем, что уведомления включены
+        }
+        resp = httpx.post(url, json=payload, timeout=10.0)
         if resp.status_code >= 400:
             logger.error("❌ HTTP API sendMessage FAILED: chat_id=%s, status=%s, response=%s", 
                         chat_id, resp.status_code, resp.text[:200])
@@ -623,5 +633,4 @@ if __name__ == "__main__":
         except Exception as e:
             logger.exception("❌ Критическая ошибка бота: %s", e)
             raise
-
 
