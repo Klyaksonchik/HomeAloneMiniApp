@@ -266,7 +266,7 @@ def _emergency(user_id: int) -> None:
     try:
         send_message_async(
             emergency_contact_user_id,
-            f"🚨 Твой друг {display_name} не выходит на связь. Проверь, всё ли с ним в порядке."
+            f"🚨 Твой друг {display_name} не выходит на связь. Проверь, всё ли с ним в порядке. Его питомец дома совсем один!"
         )
         logger.info("✅ Экстренное уведомление успешно отправлено контакту: emergency_contact_user_id=%s", emergency_contact_user_id)
     except Exception as e:
@@ -623,4 +623,5 @@ if __name__ == "__main__":
         except Exception as e:
             logger.exception("❌ Критическая ошибка бота: %s", e)
             raise
+
 
