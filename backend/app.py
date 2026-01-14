@@ -274,7 +274,7 @@ def _emergency(user_id: int) -> None:
                    emergency_contact_user_id, e)
     
     try:
-        send_message_async(user_id, f"🚨 Экстренный контакт @{emergency_contact_username} уведомлён! Если ты в порядке — отметься. Сдвинь слайдер в положение \"ДОМА\".")
+        send_message_async(user_id, f"🚨 Экстренный контакт {emergency_contact_username} уведомлён! Если ты в порядке — отметься. Сдвинь слайдер в положение \"ДОМА\".")
     except Exception as e:
         logger.error("❌ Ошибка Telegram sendMessage при отправке подтверждения пользователю: user_id=%s, error=%s", user_id, e)
 
@@ -623,4 +623,5 @@ if __name__ == "__main__":
         except Exception as e:
             logger.exception("❌ Критическая ошибка бота: %s", e)
             raise
+
 
