@@ -20,7 +20,7 @@
   overflow-x: hidden;
 }
 
-/* Градиент справа - зеленый когда дома (тонкий, только как украшение) */
+/* Единый слой с мягкими градиентными пятнами - зеленый когда дома */
 .app::before {
   content: '';
   position: fixed;
@@ -30,42 +30,28 @@
   bottom: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(ellipse 200% 150% at right center, rgba(121, 194, 103, 0.15) 0%, rgba(121, 194, 103, 0.08) 30%, transparent 60%);
+  background: 
+    radial-gradient(ellipse 180% 120% at right center, rgba(121, 194, 103, 0.12) 0%, rgba(121, 194, 103, 0.05) 40%, transparent 70%),
+    radial-gradient(ellipse 180% 120% at left center, rgba(121, 194, 103, 0.1) 0%, rgba(121, 194, 103, 0.04) 40%, transparent 70%),
+    radial-gradient(ellipse 140% 180% at top center, rgba(121, 194, 103, 0.08) 0%, rgba(121, 194, 103, 0.03) 45%, transparent 75%),
+    radial-gradient(ellipse 140% 180% at bottom center, rgba(121, 194, 103, 0.08) 0%, rgba(121, 194, 103, 0.03) 45%, transparent 75%);
   pointer-events: none;
   z-index: 0;
   transition: background 0.5s ease;
 }
 
-/* Градиент справа - красный когда не дома */
+/* Единый слой с мягкими градиентными пятнами - красный когда не дома */
 .app.not-home::before {
-  background: radial-gradient(ellipse 200% 150% at right center, rgba(250, 147, 129, 0.15) 0%, rgba(250, 147, 129, 0.08) 30%, transparent 60%);
+  background: 
+    radial-gradient(ellipse 180% 120% at right center, rgba(250, 147, 129, 0.12) 0%, rgba(250, 147, 129, 0.05) 40%, transparent 70%),
+    radial-gradient(ellipse 180% 120% at left center, rgba(250, 147, 129, 0.1) 0%, rgba(250, 147, 129, 0.04) 40%, transparent 70%),
+    radial-gradient(ellipse 140% 180% at top center, rgba(250, 147, 129, 0.08) 0%, rgba(250, 147, 129, 0.03) 45%, transparent 75%),
+    radial-gradient(ellipse 140% 180% at bottom center, rgba(250, 147, 129, 0.08) 0%, rgba(250, 147, 129, 0.03) 45%, transparent 75%);
 }
 
-/* Градиенты слева, сверху и снизу - зеленый когда дома (тонкие, только как украшение) */
+/* Убираем ::after, так как все градиенты теперь в одном слое ::before */
 .app::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
-  background: 
-    radial-gradient(ellipse 200% 150% at left center, rgba(121, 194, 103, 0.12) 0%, rgba(121, 194, 103, 0.06) 30%, transparent 60%),
-    radial-gradient(ellipse 150% 200% at top center, rgba(121, 194, 103, 0.1) 0%, rgba(121, 194, 103, 0.05) 35%, transparent 65%),
-    radial-gradient(ellipse 150% 200% at bottom center, rgba(121, 194, 103, 0.1) 0%, rgba(121, 194, 103, 0.05) 35%, transparent 65%);
-  pointer-events: none;
-  z-index: 0;
-  transition: background 0.5s ease;
-}
-
-/* Градиенты слева, сверху и снизу - красный когда не дома */
-.app.not-home::after {
-  background: 
-    radial-gradient(ellipse 200% 150% at left center, rgba(250, 147, 129, 0.12) 0%, rgba(250, 147, 129, 0.06) 30%, transparent 60%),
-    radial-gradient(ellipse 150% 200% at top center, rgba(250, 147, 129, 0.1) 0%, rgba(250, 147, 129, 0.05) 35%, transparent 65%),
-    radial-gradient(ellipse 150% 200% at bottom center, rgba(250, 147, 129, 0.1) 0%, rgba(250, 147, 129, 0.05) 35%, transparent 65%);
+  display: none;
 }
 
   .app > * {
@@ -188,12 +174,12 @@
     position: absolute;
     content: "";
     height: 40px;
-    width: 40px;
+    width: 44px;
     left: 4px;
     background-color: #fff;
     transition: 0.3s;
-    border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   }
 
 /* Когда активно "дома" - зеленый */
@@ -207,7 +193,7 @@ input:not(:checked) + .slider {
   }
 
   input:checked + .slider:before {
-    transform: translateX(132px);
+    transform: translateX(128px);
   }
 
   .slider.round {
@@ -465,12 +451,13 @@ input:not(:checked) + .slider {
     }
     
     input:checked + .slider:before {
-      transform: translateX(106px);
+      transform: translateX(102px);
     }
     
     .slider:before {
-      height: 36px;
-      width: 36px;
+      height: 34px;
+      width: 38px;
+      border-radius: 17px;
     }
     
     .dog-image {
@@ -516,12 +503,13 @@ input:not(:checked) + .slider {
     }
     
     input:checked + .slider:before {
-      transform: translateX(100px);
+      transform: translateX(96px);
     }
     
     .slider:before {
-      height: 34px;
-      width: 34px;
+      height: 32px;
+      width: 36px;
+      border-radius: 16px;
     }
     
     .dog-image {
