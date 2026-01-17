@@ -6,21 +6,21 @@
     color: #000;
   }
 
-  .app {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 20px;
-    padding-top: clamp(60px, 10vh, 120px);
-    padding-bottom: 30px;
-    background: #fff;
-    position: relative;
-    overflow-x: hidden;
-  }
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px;
+  padding-top: clamp(100px, 15vh, 180px);
+  padding-bottom: 30px;
+  background: #fff;
+  position: relative;
+  overflow-x: hidden;
+}
 
-/* Градиент справа - зеленый когда дома */
+/* Градиент справа - зеленый когда дома (тонкий, только как украшение) */
 .app::before {
   content: '';
   position: fixed;
@@ -30,7 +30,7 @@
   bottom: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(ellipse at right center, rgba(121, 194, 103, 0.4) 0%, rgba(121, 194, 103, 0.15) 40%, transparent 70%);
+  background: radial-gradient(ellipse 200% 150% at right center, rgba(121, 194, 103, 0.15) 0%, rgba(121, 194, 103, 0.08) 30%, transparent 60%);
   pointer-events: none;
   z-index: 0;
   transition: background 0.5s ease;
@@ -38,10 +38,10 @@
 
 /* Градиент справа - красный когда не дома */
 .app.not-home::before {
-  background: radial-gradient(ellipse at right center, rgba(250, 147, 129, 0.4) 0%, rgba(250, 147, 129, 0.15) 40%, transparent 70%);
+  background: radial-gradient(ellipse 200% 150% at right center, rgba(250, 147, 129, 0.15) 0%, rgba(250, 147, 129, 0.08) 30%, transparent 60%);
 }
 
-/* Второй градиент слева - зеленый когда дома */
+/* Градиенты слева, сверху и снизу - зеленый когда дома (тонкие, только как украшение) */
 .app::after {
   content: '';
   position: fixed;
@@ -52,20 +52,20 @@
   width: 100%;
   height: 100%;
   background: 
-    radial-gradient(ellipse at left center, rgba(121, 194, 103, 0.35) 0%, rgba(121, 194, 103, 0.12) 40%, transparent 70%),
-    radial-gradient(ellipse 120% 80% at top center, rgba(121, 194, 103, 0.3) 0%, rgba(121, 194, 103, 0.1) 45%, transparent 75%),
-    radial-gradient(ellipse 120% 80% at bottom center, rgba(121, 194, 103, 0.3) 0%, rgba(121, 194, 103, 0.1) 45%, transparent 75%);
+    radial-gradient(ellipse 200% 150% at left center, rgba(121, 194, 103, 0.12) 0%, rgba(121, 194, 103, 0.06) 30%, transparent 60%),
+    radial-gradient(ellipse 150% 200% at top center, rgba(121, 194, 103, 0.1) 0%, rgba(121, 194, 103, 0.05) 35%, transparent 65%),
+    radial-gradient(ellipse 150% 200% at bottom center, rgba(121, 194, 103, 0.1) 0%, rgba(121, 194, 103, 0.05) 35%, transparent 65%);
   pointer-events: none;
   z-index: 0;
   transition: background 0.5s ease;
 }
 
-/* Второй градиент слева - красный когда не дома */
+/* Градиенты слева, сверху и снизу - красный когда не дома */
 .app.not-home::after {
   background: 
-    radial-gradient(ellipse at left center, rgba(250, 147, 129, 0.35) 0%, rgba(250, 147, 129, 0.12) 40%, transparent 70%),
-    radial-gradient(ellipse 120% 80% at top center, rgba(250, 147, 129, 0.3) 0%, rgba(250, 147, 129, 0.1) 45%, transparent 75%),
-    radial-gradient(ellipse 120% 80% at bottom center, rgba(250, 147, 129, 0.3) 0%, rgba(250, 147, 129, 0.1) 45%, transparent 75%);
+    radial-gradient(ellipse 200% 150% at left center, rgba(250, 147, 129, 0.12) 0%, rgba(250, 147, 129, 0.06) 30%, transparent 60%),
+    radial-gradient(ellipse 150% 200% at top center, rgba(250, 147, 129, 0.1) 0%, rgba(250, 147, 129, 0.05) 35%, transparent 65%),
+    radial-gradient(ellipse 150% 200% at bottom center, rgba(250, 147, 129, 0.1) 0%, rgba(250, 147, 129, 0.05) 35%, transparent 65%);
 }
 
   .app > * {
@@ -432,48 +432,116 @@ input:not(:checked) + .slider {
     border-color: #79c267;
   }
 
-  /* Адаптивность */
+  /* Адаптивность для маленьких экранов */
   @media (max-width: 480px) {
     .app {
       padding: 16px;
-      padding-top: clamp(50px, 8vh, 100px);
+      padding-top: clamp(80px, 12vh, 140px);
       padding-bottom: 24px;
     }
     
     h1 {
-      font-size: 28px;
+      font-size: 26px;
+      margin-bottom: 16px;
     }
     
     .timer-large {
-      font-size: 56px;
+      font-size: 52px;
     }
     
     .slider-container {
       max-width: 100%;
-      gap: 12px;
+      gap: 10px;
     }
     
     .status-label {
-      font-size: 14px;
-      min-width: 70px;
+      font-size: 13px;
+      min-width: 65px;
     }
     
     .switch {
-      width: 160px;
-      height: 44px;
+      width: 150px;
+      height: 42px;
     }
     
     input:checked + .slider:before {
-      transform: translateX(112px);
+      transform: translateX(106px);
+    }
+    
+    .slider:before {
+      height: 36px;
+      width: 36px;
     }
     
     .dog-image {
-      width: 240px;
+      width: 220px;
+      margin-bottom: 16px;
     }
     
     .contact-section {
       max-width: 100%;
       margin-bottom: 16px;
+    }
+    
+    .status-hint {
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    
+    .change-timer-btn {
+      font-size: 13px;
+      padding: 8px 16px;
+      margin-bottom: 20px;
+    }
+  }
+
+  /* Адаптивность для очень маленьких экранов */
+  @media (max-width: 360px) {
+    .app {
+      padding: 12px;
+      padding-top: clamp(70px, 10vh, 120px);
+    }
+    
+    h1 {
+      font-size: 24px;
+    }
+    
+    .timer-large {
+      font-size: 48px;
+    }
+    
+    .switch {
+      width: 140px;
+      height: 40px;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(100px);
+    }
+    
+    .slider:before {
+      height: 34px;
+      width: 34px;
+    }
+    
+    .dog-image {
+      width: 200px;
+    }
+  }
+
+  /* Адаптивность для средних экранов */
+  @media (min-width: 481px) and (max-width: 768px) {
+    .app {
+      padding-top: clamp(90px, 13vh, 160px);
+    }
+  }
+
+  /* Адаптивность для больших экранов */
+  @media (min-width: 769px) {
+    .app {
+      padding-top: clamp(120px, 18vh, 200px);
+      max-width: 600px;
+      margin: 0 auto;
     }
   }
 
