@@ -289,10 +289,7 @@ export default function App() {
 
   return (
     <div className={`app ${!isHome ? 'not-home' : ''}`}>
-      <h1>
-        <div>Твой питомец</div>
-        <div>в безопасности</div>
-      </h1>
+      <h1>Таймер безопасности</h1>
 
       {!isTelegramReady && (
         <div style={{ marginBottom: 12, color: "#a00", fontWeight: "bold" }}>
@@ -301,7 +298,7 @@ export default function App() {
       )}
 
       <div className="slider-container" style={{ opacity: isTelegramReady ? 1 : 0.6 }}>
-        <span className="status-label">🏠 Дома</span>
+        <span className="status-label">Дома</span>
         <label className="switch">
           <input
             type="checkbox"
@@ -311,7 +308,7 @@ export default function App() {
           />
           <span className="slider round"></span>
         </label>
-        <span className="status-label">🚶 Не дома</span>
+        <span className="status-label">Не дома</span>
       </div>
 
       <div className="status-hint">
