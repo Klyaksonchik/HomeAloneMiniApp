@@ -20,7 +20,7 @@
   overflow-x: hidden;
 }
 
-/* Единый слой с мягкими градиентными пятнами - зеленый когда дома */
+/* Единый слой с яркими градиентными пятнами только по периметру - зеленый когда дома */
 .app::before {
   content: '';
   position: fixed;
@@ -31,22 +31,22 @@
   width: 100%;
   height: 100%;
   background: 
-    radial-gradient(ellipse 180% 120% at right center, rgba(121, 194, 103, 0.12) 0%, rgba(121, 194, 103, 0.05) 40%, transparent 70%),
-    radial-gradient(ellipse 180% 120% at left center, rgba(121, 194, 103, 0.1) 0%, rgba(121, 194, 103, 0.04) 40%, transparent 70%),
-    radial-gradient(ellipse 140% 180% at top center, rgba(121, 194, 103, 0.08) 0%, rgba(121, 194, 103, 0.03) 45%, transparent 75%),
-    radial-gradient(ellipse 140% 180% at bottom center, rgba(121, 194, 103, 0.08) 0%, rgba(121, 194, 103, 0.03) 45%, transparent 75%);
+    radial-gradient(ellipse 120% 100% at right top, rgba(121, 194, 103, 0.25) 0%, rgba(121, 194, 103, 0.1) 30%, transparent 50%),
+    radial-gradient(ellipse 120% 100% at left top, rgba(121, 194, 103, 0.25) 0%, rgba(121, 194, 103, 0.1) 30%, transparent 50%),
+    radial-gradient(ellipse 120% 100% at right bottom, rgba(121, 194, 103, 0.25) 0%, rgba(121, 194, 103, 0.1) 30%, transparent 50%),
+    radial-gradient(ellipse 120% 100% at left bottom, rgba(121, 194, 103, 0.25) 0%, rgba(121, 194, 103, 0.1) 30%, transparent 50%);
   pointer-events: none;
   z-index: 0;
   transition: background 0.5s ease;
 }
 
-/* Единый слой с мягкими градиентными пятнами - красный когда не дома */
+/* Единый слой с яркими градиентными пятнами только по периметру - красный когда не дома */
 .app.not-home::before {
   background: 
-    radial-gradient(ellipse 180% 120% at right center, rgba(250, 147, 129, 0.12) 0%, rgba(250, 147, 129, 0.05) 40%, transparent 70%),
-    radial-gradient(ellipse 180% 120% at left center, rgba(250, 147, 129, 0.1) 0%, rgba(250, 147, 129, 0.04) 40%, transparent 70%),
-    radial-gradient(ellipse 140% 180% at top center, rgba(250, 147, 129, 0.08) 0%, rgba(250, 147, 129, 0.03) 45%, transparent 75%),
-    radial-gradient(ellipse 140% 180% at bottom center, rgba(250, 147, 129, 0.08) 0%, rgba(250, 147, 129, 0.03) 45%, transparent 75%);
+    radial-gradient(ellipse 120% 100% at right top, rgba(250, 147, 129, 0.25) 0%, rgba(250, 147, 129, 0.1) 30%, transparent 50%),
+    radial-gradient(ellipse 120% 100% at left top, rgba(250, 147, 129, 0.25) 0%, rgba(250, 147, 129, 0.1) 30%, transparent 50%),
+    radial-gradient(ellipse 120% 100% at right bottom, rgba(250, 147, 129, 0.25) 0%, rgba(250, 147, 129, 0.1) 30%, transparent 50%),
+    radial-gradient(ellipse 120% 100% at left bottom, rgba(250, 147, 129, 0.25) 0%, rgba(250, 147, 129, 0.1) 30%, transparent 50%);
 }
 
 /* Убираем ::after, так как все градиенты теперь в одном слое ::before */
