@@ -1,7 +1,7 @@
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-    font-weight: 600;
+    font-weight: 400;
     background-color: #fff;
     color: #000;
   }
@@ -20,7 +20,7 @@
   overflow-x: hidden;
 }
 
-/* Единый слой с яркими градиентными пятнами только по периметру - зеленый когда дома */
+/* Линейный градиент от белого сверху до зеленого снизу - когда дома */
 .app::before {
   content: '';
   position: fixed;
@@ -30,23 +30,15 @@
   bottom: 0;
   width: 100%;
   height: 100%;
-  background: 
-    radial-gradient(ellipse 85% 75% at 92% 8%, rgba(121, 194, 103, 0.5) 0%, rgba(121, 194, 103, 0.2) 25%, transparent 35%),
-    radial-gradient(ellipse 75% 80% at 15% 5%, rgba(121, 194, 103, 0.5) 0%, rgba(121, 194, 103, 0.2) 25%, transparent 35%),
-    radial-gradient(ellipse 80% 70% at 88% 90%, rgba(121, 194, 103, 0.5) 0%, rgba(121, 194, 103, 0.2) 25%, transparent 35%),
-    radial-gradient(ellipse 70% 85% at 4% 72%, rgba(121, 194, 103, 0.5) 0%, rgba(121, 194, 103, 0.2) 25%, transparent 35%);
+  background: linear-gradient(to bottom, #ffffff 0%, rgba(121, 194, 103, 0.15) 100%);
   pointer-events: none;
   z-index: 0;
   transition: background 0.5s ease;
 }
 
-/* Единый слой с яркими градиентными пятнами только по периметру - красный когда не дома */
+/* Линейный градиент от белого сверху до красного снизу - когда не дома */
 .app.not-home::before {
-  background: 
-    radial-gradient(ellipse 85% 75% at 92% 8%, rgba(250, 147, 129, 0.5) 0%, rgba(250, 147, 129, 0.2) 25%, transparent 35%),
-    radial-gradient(ellipse 75% 80% at 15% 5%, rgba(250, 147, 129, 0.5) 0%, rgba(250, 147, 129, 0.2) 25%, transparent 35%),
-    radial-gradient(ellipse 80% 70% at 88% 90%, rgba(250, 147, 129, 0.5) 0%, rgba(250, 147, 129, 0.2) 25%, transparent 35%),
-    radial-gradient(ellipse 70% 85% at 4% 72%, rgba(250, 147, 129, 0.5) 0%, rgba(250, 147, 129, 0.2) 25%, transparent 35%);
+  background: linear-gradient(to bottom, #ffffff 0%, rgba(250, 147, 129, 0.15) 100%);
 }
 
 /* Убираем ::after, так как все градиенты теперь в одном слое ::before */
@@ -63,7 +55,7 @@
     margin: 0 0 20px 0;
     color: #000;
     font-size: 32px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     text-align: center;
     line-height: 1.3;
@@ -73,7 +65,7 @@
   text-align: center;
   color: #999999;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
   margin: 0 0 16px 0;
   line-height: 1.5;
@@ -82,7 +74,7 @@
 
   .timer-large {
     font-size: 64px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     color: #000;
     text-align: center;
@@ -99,7 +91,7 @@
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     margin: 0 0 24px 0;
     transition: all 0.3s ease;
@@ -134,7 +126,7 @@
   }
 
   .status-label {
-    font-weight: 600;
+    font-weight: 500;
     font-size: 16px;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     color: #000;
@@ -222,7 +214,7 @@ input:not(:checked) + .slider {
   .contact-label {
     color: #000;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
   }
 
@@ -233,7 +225,7 @@ input:not(:checked) + .slider {
   padding: 0;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
   transition: opacity 0.3s ease;
 }
@@ -255,10 +247,16 @@ input:not(:checked) + .slider {
     background: rgba(0, 0, 0, 0.03);
     color: #000;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 400;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     transition: all 0.3s ease;
     box-sizing: border-box;
+    caret-color: #666;
+  }
+
+  .contact-input::selection {
+    background: rgba(121, 194, 103, 0.3);
+    color: #000;
   }
 
   .contact-input::placeholder {
@@ -278,7 +276,7 @@ input:not(:checked) + .slider {
 
   .timer-expired {
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     margin: 20px;
     color: #000;
@@ -311,7 +309,7 @@ input:not(:checked) + .slider {
 
   .timer-settings label {
     color: #000;
-    font-weight: 600;
+    font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
   }
 
@@ -331,7 +329,7 @@ input:not(:checked) + .slider {
 
   .timer-input-group label {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     color: #000;
   }
@@ -342,7 +340,7 @@ input:not(:checked) + .slider {
     border-radius: 12px;
     border: 2px solid rgba(0, 0, 0, 0.2);
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 400;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     text-align: center;
     background: rgba(0, 0, 0, 0.03);
@@ -352,6 +350,12 @@ input:not(:checked) + .slider {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: textfield;
+    caret-color: #666;
+  }
+
+  .timer-input::selection {
+    background: rgba(121, 194, 103, 0.3);
+    color: #000;
   }
 
   .timer-input:focus {
@@ -376,7 +380,7 @@ input:not(:checked) + .slider {
     border-radius: 12px;
     cursor: pointer;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     margin-top: 15px;
     transition: all 0.3s ease;
@@ -397,7 +401,7 @@ input:not(:checked) + .slider {
     margin: 5px;
     padding: 8px 16px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     background: rgba(0, 0, 0, 0.03);
     color: #000;
@@ -553,7 +557,7 @@ input:not(:checked) + .slider {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    max-width: 393px;
+    max-width: 320px;
     padding: 0 24px;
     margin-bottom: 16px;
     position: relative;
@@ -569,7 +573,7 @@ input:not(:checked) + .slider {
   .telegram-hint {
     margin: 12px 24px;
     color: #a00;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 14px;
     text-align: center;
   }
@@ -632,7 +636,7 @@ input:not(:checked) + .slider {
 
   .card {
     width: 100%;
-    max-width: 393px;
+    max-width: 320px;
     background: white;
     border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -653,7 +657,7 @@ input:not(:checked) + .slider {
 
   .card-title {
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 500;
     color: #333;
     margin: 0;
   }
@@ -685,7 +689,7 @@ input:not(:checked) + .slider {
     border: none;
     color: white;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
   }
@@ -727,7 +731,7 @@ input:not(:checked) + .slider {
     border: none;
     color: #999999;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     padding: 4px 8px;
     transition: opacity 0.3s;
@@ -790,7 +794,7 @@ input:not(:checked) + .slider {
   .slider-knob-text {
     color: white;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .slider-labels {
@@ -826,7 +830,7 @@ input:not(:checked) + .slider {
 
   .dog-image-wrapper {
     width: 100%;
-    max-width: 393px;
+    max-width: 320px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -879,7 +883,7 @@ input:not(:checked) + .slider {
   .timer-modal-header h2 {
     margin: 0;
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 500;
     color: #000;
   }
 
@@ -914,7 +918,7 @@ input:not(:checked) + .slider {
   .timer-section-label {
     display: block;
     margin-bottom: 12px;
-    font-weight: 600;
+    font-weight: 500;
     color: #000;
     font-size: 16px;
   }
@@ -934,7 +938,7 @@ input:not(:checked) + .slider {
     align-items: center;
     gap: 8px;
     margin-bottom: 12px;
-    font-weight: 600;
+    font-weight: 500;
     color: #000;
     font-size: 16px;
     cursor: pointer;
@@ -960,7 +964,7 @@ input:not(:checked) + .slider {
     border: none;
     border-radius: 12px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
     margin-top: 20px;
