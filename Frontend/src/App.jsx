@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { TimerModal } from "./TimerModal";
 
 const BACKEND_URL = "https://homealoneminiapp.onrender.com";
 const LS_KEY_CONTACT = "homealone_emergency_contact";
@@ -37,6 +38,8 @@ export default function App() {
   const [customTimerMinutes, setCustomTimerMinutes] = useState(0);
   const [useCustomTimer, setUseCustomTimer] = useState(false);
   const [timerExpired, setTimerExpired] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showTimerModal, setShowTimerModal] = useState(false);
 
   const happyDog = "https://i.postimg.cc/BncFqv31/Snimok-ekrana-2025-08-19-v-16-37-23-copy.png";
   const sadDog = "https://i.postimg.cc/KY8NKWm0/sad-dog.png";
@@ -247,6 +250,42 @@ export default function App() {
       });
       setTimerSeconds(finalTimerSeconds);
       setShowTimerSettings(false);
+      setShowTimerModal(false);
+      alert("Таймер сохранён");
+    } catch (e) {
+      alert(e?.response?.data?.error || e?.message || "Ошибка сохранения таймера");
+    }
+  };
+
+  const handleTimerSet = async (hours, minutes) => {
+    if (!userId) return;
+    const totalSeconds = hours * 3600 + minutes * 60;
+    if (totalSeconds < 60) {
+      alert("Таймер должен быть не менее 1 минуты.");
+      return;
+    }
+
+    // Определяем, это кастомный таймер или пресет
+    const isPreset = TIMER_PRESETS.some(p => p.value === totalSeconds);
+    
+    try {
+      await axios.post(`${BACKEND_URL}/timer`, {
+        user_id: Number(userId),
+        timer_seconds: totalSeconds,
+      });
+      
+      setTimerSeconds(totalSeconds);
+      setUseCustomTimer(!isPreset);
+      if (!isPreset) {
+        setCustomTimerHours(hours);
+        setCustomTimerMinutes(minutes);
+      }
+      
+      if (!isHome) {
+        setTimeLeft(totalSeconds);
+      }
+      
+      setShowTimerModal(false);
       alert("Таймер сохранён");
     } catch (e) {
       alert(e?.response?.data?.error || e?.message || "Ошибка сохранения таймера");
@@ -289,56 +328,71 @@ export default function App() {
 
   return (
     <div className={`app ${!isHome ? 'not-home' : ''}`}>
-      <h1>Таймер безопасности</h1>
+      {/* Header */}
+      <div className="app-header">
+        <h1>Таймер безопасности</h1>
+        <button
+          className="menu-button"
+          onClick={() => setShowMenu(!showMenu)}
+          disabled={!isTelegramReady}
+        >
+          <span className="menu-icon">☰</span>
+        </button>
+      </div>
+
+      {/* Dropdown Menu */}
+      {showMenu && (
+        <div className="dropdown-menu">
+          <div className="dropdown-item" onClick={() => setShowMenu(false)}>
+            Информация о приложении
+          </div>
+        </div>
+      )}
 
       {!isTelegramReady && (
-        <div style={{ marginBottom: 12, color: "#a00", fontWeight: "bold" }}>
+        <div className="telegram-hint">
           Откройте мини‑апп из меню бота после команды /start
         </div>
       )}
 
-      <div className="slider-container" style={{ opacity: isTelegramReady ? 1 : 0.6 }}>
-        <span className="status-label">Дома</span>
-        <label className="switch">
+      {/* Timer Display Card */}
+      <div className="card timer-card">
+        <div className="card-header">
+          <span className="card-icon">⏱</span>
+          <h2 className="card-title">Таймер обратного отсчёта</h2>
+        </div>
+        <div className="timer-display-wrapper">
+          <div className={`timer-large ${!isHome ? 'timer-red' : 'timer-green'}`}>
+            {getDisplayTime()}
+          </div>
+          <button
+            className={`timer-set-btn ${!isHome ? 'btn-red' : 'btn-green'}`}
+            onClick={() => setShowTimerModal(true)}
+            disabled={!isTelegramReady}
+          >
+            Установить таймер
+          </button>
+        </div>
+      </div>
+
+      {/* Emergency Contact Card */}
+      <div className="card contact-card">
+        <div className="card-header">
+          <span className="card-icon">📞</span>
+          <h3 className="card-title">Экстренный контакт</h3>
+        </div>
+        <div className="contact-input-wrapper">
           <input
-            type="checkbox"
-            checked={!isHome}
-            onChange={toggleStatus}
-            disabled={toggleDisabled}
+            className="contact-input"
+            placeholder="@введите экстренный контакт"
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            disabled={!isTelegramReady || !editingContact}
+            onFocus={() => setEditingContact(true)}
           />
-          <span className="slider round"></span>
-        </label>
-        <span className="status-label">Не дома</span>
-      </div>
-
-      <div className="status-hint">
-        {isHome 
-          ? "Когда уходишь из дома, сдвинь слайдер в положение «Не дома»"
-          : "Когда вернёшься домой, сдвинь слайдер в положение «Дома»!"
-        }
-      </div>
-
-      {/* Таймер всегда виден на одном месте */}
-      <div className="timer-large">{getDisplayTime()}</div>
-      {!showTimerSettings && (
-        <button 
-          className="change-timer-btn"
-          onClick={() => setShowTimerSettings(!showTimerSettings)}
-          disabled={!isTelegramReady}
-        >
-          Изменить таймер
-        </button>
-      )}
-
-      <img src={isHome ? happyDog : sadDog} alt="dog" className="dog-image" />
-
-      {/* Экстренный контакт под картинкой */}
-      <div className="contact-section">
-        <div className="contact-header">
-          <span className="contact-label">Экстренный контакт</span>
           {contact && (
             <button 
-              className="contact-change-btn"
+              className="contact-save-btn"
               onClick={onContactAction} 
               disabled={!isTelegramReady}
             >
@@ -346,14 +400,40 @@ export default function App() {
             </button>
           )}
         </div>
-        <input
-          className="contact-input"
-          placeholder="@введите экстренный контакт"
-          value={contact}
-          onChange={(e) => setContact(e.target.value)}
-          disabled={!isTelegramReady || !editingContact}
-          onFocus={() => setEditingContact(true)}
-        />
+      </div>
+
+      {/* Slider Card */}
+      <div className="card slider-card">
+        <div 
+          className={`slider-new ${!isHome ? 'slider-red' : 'slider-green'}`}
+          onClick={toggleStatus}
+          style={{ opacity: isTelegramReady && !toggleDisabled ? 1 : 0.6, cursor: toggleDisabled ? 'not-allowed' : 'pointer' }}
+        >
+          <div
+            className={`slider-knob ${!isHome ? 'knob-right' : 'knob-left'}`}
+          >
+            <span className="slider-knob-text">{!isHome ? 'Не дома' : 'Дома'}</span>
+          </div>
+          <div className="slider-labels">
+            <span className={`slider-label ${!isHome ? 'label-visible' : 'label-hidden'}`}>
+              Дома
+            </span>
+            <span className={`slider-label ${isHome ? 'label-visible' : 'label-hidden'}`}>
+              Не дома
+            </span>
+          </div>
+        </div>
+        <p className="slider-hint">
+          {isHome 
+            ? "Когда уходишь из дома, сдвинь слайдер в положение «Не дома»"
+            : "Когда вернёшься домой, сдвинь слайдер в положение «Дома»!"
+          }
+        </p>
+      </div>
+
+      {/* Dog Image */}
+      <div className="dog-image-wrapper">
+        <img src={isHome ? happyDog : sadDog} alt="dog" className="dog-image-new" />
       </div>
 
       {!isHome && timerExpired && (
@@ -362,87 +442,14 @@ export default function App() {
         </div>
       )}
 
-      {/* Настройка таймера */}
-      {showTimerSettings && (
-        <div className="timer-section">
-          <div className="timer-settings">
-              <div style={{ marginBottom: 15 }}>
-                <label style={{ display: "block", marginBottom: 10, fontWeight: 600 }}>
-                  Выберите таймер:
-                </label>
-                {TIMER_PRESETS.map((preset) => (
-                  <button
-                    key={preset.value}
-                    onClick={() => {
-                      setTimerSeconds(preset.value);
-                      setUseCustomTimer(false);
-                    }}
-                    className={`timer-preset-btn ${timerSeconds === preset.value && !useCustomTimer ? 'active' : ''}`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ marginBottom: 15 }}>
-                <label style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-                  <input
-                    type="checkbox"
-                    checked={useCustomTimer}
-                    onChange={(e) => setUseCustomTimer(e.target.checked)}
-                    style={{ marginRight: 8 }}
-                  />
-                  <span style={{ fontWeight: 600 }}>Свой таймер</span>
-                </label>
-                {useCustomTimer && (
-                  <div className="custom-timer-inputs">
-                    <div className="timer-input-group">
-                      <label>Часы</label>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        min="0"
-                        max="168"
-                        step="1"
-                        value={customTimerHours}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          setCustomTimerHours(Math.max(0, Math.min(168, val)));
-                        }}
-                        onFocus={(e) => e.target.select()}
-                        className="timer-input"
-                        placeholder="0"
-                      />
-                    </div>
-                    <div className="timer-input-group">
-                      <label>Минуты</label>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        min="0"
-                        max="59"
-                        step="1"
-                        value={customTimerMinutes}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          setCustomTimerMinutes(Math.max(0, Math.min(59, val)));
-                        }}
-                        onFocus={(e) => e.target.select()}
-                        className="timer-input"
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <button onClick={saveTimer} disabled={!isTelegramReady}>
-                Сохранить таймер
-              </button>
-          </div>
-        </div>
+      {/* Timer Modal */}
+      {showTimerModal && (
+        <TimerModal
+          isAway={!isHome}
+          onClose={() => setShowTimerModal(false)}
+          onSetTimer={handleTimerSet}
+          currentDuration={useCustomTimer ? customTimerHours * 3600 + customTimerMinutes * 60 : timerSeconds}
+        />
       )}
     </div>
   );
