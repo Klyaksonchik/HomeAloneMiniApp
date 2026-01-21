@@ -355,16 +355,18 @@ export default function App() {
 
       {/* Timer Display */}
       <div className="timer-display-container">
-        <div className={`timer-large ${!isHome ? 'timer-red' : 'timer-green'}`}>
-          {getDisplayTime()}
+        <div className="timer-display-wrapper">
+          <div className={`timer-large ${!isHome ? 'timer-red' : 'timer-green'}`}>
+            {getDisplayTime()}
+          </div>
+          <button
+            className="change-timer-button"
+            onClick={() => setShowTimerModal(true)}
+            disabled={!isTelegramReady}
+          >
+            Изменить таймер
+          </button>
         </div>
-        <button
-          className="change-timer-button"
-          onClick={() => setShowTimerModal(true)}
-          disabled={!isTelegramReady}
-        >
-          Изменить таймер
-        </button>
       </div>
 
       {/* Slider */}
@@ -390,7 +392,7 @@ export default function App() {
         </div>
         <p className="slider-hint">
           {isHome 
-            ? "Когда уходишь из дома, сдвинь слайдер в положение «Не дома»"
+            ? <>Когда уходишь из дома,<br />сдвинь слайдер в положение «Не дома»</>
             : "Когда вернёшься домой, сдвинь слайдер в положение «Дома»!"
           }
         </p>
