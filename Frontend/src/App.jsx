@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { TimerModal } from "./TimerModal";
+import { HowItWorks } from "./HowItWorks";
+import { SupportProject } from "./SupportProject";
+import { EmergencyGuide } from "./EmergencyGuide";
+import { PrivacyPolicy } from "./PrivacyPolicy";
 
 const BACKEND_URL = "https://homealoneminiapp.onrender.com";
 const LS_KEY_CONTACT = "homealone_emergency_contact";
@@ -40,9 +44,7 @@ export default function App() {
   const [timerExpired, setTimerExpired] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showTimerModal, setShowTimerModal] = useState(false);
-
-  const happyDog = "https://i.postimg.cc/BncFqv31/Snimok-ekrana-2025-08-19-v-16-37-23-copy.png";
-  const sadDog = "https://i.postimg.cc/KY8NKWm0/sad-dog.png";
+  const [currentPage, setCurrentPage] = useState('home'); // 'home', 'how-it-works', 'support', 'emergency', 'privacy'
 
   useEffect(() => {
     try {
@@ -326,84 +328,47 @@ export default function App() {
     return formatTime(timerSeconds);
   };
 
+  // Если не на главной странице, показываем соответствующую страницу
+  if (currentPage === 'how-it-works') {
+    return <HowItWorks onBack={() => setCurrentPage('home')} onNavigate={(page) => setCurrentPage(page)} />;
+  }
+  if (currentPage === 'support') {
+    return <SupportProject onBack={() => setCurrentPage('home')} onNavigate={(page) => setCurrentPage(page)} />;
+  }
+  if (currentPage === 'emergency') {
+    return <EmergencyGuide onBack={() => setCurrentPage('home')} onNavigate={(page) => setCurrentPage(page)} />;
+  }
+  if (currentPage === 'privacy') {
+    return <PrivacyPolicy onBack={() => setCurrentPage('home')} onNavigate={(page) => setCurrentPage(page)} />;
+  }
+
   return (
     <div className={`app ${!isHome ? 'not-home' : ''}`}>
-      {/* Header */}
-      <div className="app-header">
-        <h1>Таймер безопасности</h1>
-        <button
-          className="menu-button"
-          onClick={() => setShowMenu(!showMenu)}
-          disabled={!isTelegramReady}
-        >
-          <span className="menu-icon">☰</span>
-        </button>
-      </div>
-
-      {/* Dropdown Menu */}
-      {showMenu && (
-        <div className="dropdown-menu">
-          <div className="dropdown-item" onClick={() => setShowMenu(false)}>
-            Информация о приложении
-          </div>
-        </div>
-      )}
-
       {!isTelegramReady && (
         <div className="telegram-hint">
           Откройте мини‑апп из меню бота после команды /start
         </div>
       )}
 
-      {/* Timer Display Card */}
-      <div className="card timer-card">
-        <div className="card-header">
-          <span className="card-icon">⏱</span>
-          <h2 className="card-title">Таймер обратного отсчёта</h2>
+      {/* Main Title */}
+      <h1 className="main-title">Таймер безопасности</h1>
+
+      {/* Timer Display */}
+      <div className="timer-display-container">
+        <div className={`timer-large ${!isHome ? 'timer-red' : 'timer-green'}`}>
+          {getDisplayTime()}
         </div>
-        <div className="timer-display-wrapper">
-          <div className={`timer-large ${!isHome ? 'timer-red' : 'timer-green'}`}>
-            {getDisplayTime()}
-          </div>
-          <button
-            className={`timer-set-btn ${!isHome ? 'btn-red' : 'btn-green'}`}
-            onClick={() => setShowTimerModal(true)}
-            disabled={!isTelegramReady}
-          >
-            Установить таймер
-          </button>
-        </div>
+        <button
+          className="change-timer-button"
+          onClick={() => setShowTimerModal(true)}
+          disabled={!isTelegramReady}
+        >
+          Изменить таймер
+        </button>
       </div>
 
-      {/* Emergency Contact Card */}
-      <div className="card contact-card">
-        <div className="card-header">
-          <span className="card-icon">📞</span>
-          <h3 className="card-title">Экстренный контакт</h3>
-        </div>
-        <div className="contact-input-wrapper">
-          <input
-            className="contact-input"
-            placeholder="@введите экстренный контакт"
-            value={contact}
-            onChange={(e) => setContact(e.target.value)}
-            disabled={!isTelegramReady || !editingContact}
-            onFocus={() => setEditingContact(true)}
-          />
-          {contact && (
-            <button 
-              className="contact-save-btn"
-              onClick={onContactAction} 
-              disabled={!isTelegramReady}
-            >
-              {editingContact ? "Сохранить" : "Изменить"}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Slider Card */}
-      <div className="card slider-card">
+      {/* Slider */}
+      <div className="slider-container-new">
         <div 
           className={`slider-new ${!isHome ? 'slider-red' : 'slider-green'}`}
           onClick={toggleStatus}
@@ -431,9 +396,28 @@ export default function App() {
         </p>
       </div>
 
-      {/* Dog Image */}
-      <div className="dog-image-wrapper">
-        <img src={isHome ? happyDog : sadDog} alt="dog" className="dog-image-new" />
+      {/* Emergency Contact */}
+      <div className="emergency-contact-container">
+        <h3 className="emergency-contact-title">Экстренный контакт</h3>
+        <div className="contact-input-wrapper-new">
+          <input
+            className="contact-input"
+            placeholder="@введите экстренный контакт"
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            disabled={!isTelegramReady || !editingContact}
+            onFocus={() => setEditingContact(true)}
+          />
+          {contact && (
+            <button 
+              className="contact-save-btn"
+              onClick={onContactAction} 
+              disabled={!isTelegramReady}
+            >
+              {editingContact ? "Сохранить" : "Изменить"}
+            </button>
+          )}
+        </div>
       </div>
 
       {!isHome && timerExpired && (
@@ -451,6 +435,55 @@ export default function App() {
           currentDuration={useCustomTimer ? customTimerHours * 3600 + customTimerMinutes * 60 : timerSeconds}
         />
       )}
+
+      {/* Bottom Navigation */}
+      <div className="bottom-nav">
+        <button 
+          className={`nav-button ${currentPage === 'home' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('home')}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 22V12H15V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button 
+          className={`nav-button ${currentPage === 'how-it-works' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('how-it-works')}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+            <path d="M12 6V12L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
+        <button 
+          className={`nav-button nav-button-large ${currentPage === 'support' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('support')}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button 
+          className={`nav-button ${currentPage === 'emergency' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('emergency')}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10.29 3.86L1.82 18C1.64538 18.3024 1.55299 18.6453 1.552 19C1.55101 19.3547 1.64145 19.6981 1.81445 20.0016C1.98745 20.3051 2.23675 20.5581 2.53771 20.7359C2.83868 20.9137 3.18082 21.0099 3.53 21H20.47C20.8192 21.0099 21.1613 20.9137 21.4623 20.7359C21.7633 20.5581 22.0126 20.3051 22.1856 20.0016C22.3586 19.6981 22.449 19.3547 22.448 19C22.447 18.6453 22.3546 18.3024 22.18 18L13.71 3.86C13.5317 3.56611 13.2807 3.32311 12.9812 3.15448C12.6817 2.98585 12.3438 2.89725 12 2.89725C11.6562 2.89725 11.3183 2.98585 11.0188 3.15448C10.7193 3.32311 10.4683 3.56611 10.29 3.86V3.86Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 9V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12 17H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
+        <button 
+          className={`nav-button ${currentPage === 'privacy' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('privacy')}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
