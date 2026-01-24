@@ -764,9 +764,7 @@ body {
   .nav-button svg {
     width: 18px;
     height: 18px;
-  }
-
-  .nav-button-large {
+  }  .nav-button-large {
     width: 108px;
     height: 108px;
   }  .nav-button-large svg {
