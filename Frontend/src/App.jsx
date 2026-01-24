@@ -351,7 +351,7 @@ export default function App() {
       )}
 
       {/* App Name */}
-      <p className="app-name">Твой питомец в безопасности</p>
+      <p className="app-name">Home Alone Pet</p>
       
       {/* Main Title */}
       <h1 className="main-title">Таймер безопасности</h1>
