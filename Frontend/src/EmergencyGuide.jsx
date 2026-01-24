@@ -53,4 +53,3 @@ export function EmergencyGuide({ onBack, onNavigate }) {
     </div>
   );
 }
-
