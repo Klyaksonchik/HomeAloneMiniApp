@@ -854,6 +854,13 @@ body {
   justify-content: center;
 }
 
+.support-button-link {
+  width: 100%;
+  max-width: 320px;
+  text-decoration: none;
+  display: block;
+}
+
 .support-button {
   width: 100%;
   max-width: 320px;
