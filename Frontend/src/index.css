@@ -822,6 +822,29 @@ body {
   margin-bottom: 0;
 }
 
+/* Step illustrations */
+.step-container {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step-illustration {
+  width: 100%;
+  max-width: 300px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 0 auto;
+  display: block;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.step-container p {
+  margin: 0;
+}
+
 /* Support Button */
 .support-button-container {
   width: 100%;
