@@ -5,9 +5,9 @@
       <div className="info-page">
         <div className="info-header">
           <button className="back-button" onClick={onBack}>←</button>
+          <p className="app-name">Home Alone Pet</p>
         </div>
         <div className="info-content">
-          <p className="app-name">Home Alone Pet</p>
           <h1 className="page-title">Как работает приложение</h1>
           <p>
             Приложение помогает вам быть спокойным за вашего питомца, если вы не вернетесь домой вовремя. 
