@@ -15,9 +15,16 @@ export function SupportProject({ onBack, onNavigate }) {
           Приложение полностью бесплатное, но если вы хотите помочь проекту вырасти и стать частью жизни каждого ответственного хозяина - поддержите нас!
         </p>
         <div className="support-button-container">
-          <button className="support-button">
-            Поддержать
-          </button>
+          <a 
+            href="https://i.postimg.cc/43yHG1xZ/photo-2026-01-21-21-05-46.jpg" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="support-button-link"
+          >
+            <button className="support-button">
+              Поддержать
+            </button>
+          </a>
         </div>
       </div>
       <div className="bottom-nav">
