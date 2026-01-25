@@ -90,7 +90,7 @@ body {
 .main-title {
   margin: 40px auto 40px;
   color: #000;
-  font-size: 64px;
+  font-size: 48px;
   font-weight: 500;
   font-family: 'SFProText', sans-serif;
   text-align: center;
@@ -575,7 +575,7 @@ body {
 /* Bottom Navigation */
 .bottom-nav {
   position: fixed;
-  bottom: env(safe-area-inset-bottom, 0);
+  bottom: calc(16px + env(safe-area-inset-bottom, 0));
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -710,7 +710,7 @@ body {
   overflow-y: hidden;
   overflow-x: hidden;
   padding-bottom: 0;
-  padding-top: clamp(20px, 5vh, 40px);
+  padding-top: 0;
   box-sizing: border-box;
 }
 
@@ -754,8 +754,11 @@ body {
   flex-direction: column;
   align-items: center;
   padding: 0 20px 20px;
-  position: relative;
-  z-index: 1;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+  margin-top: clamp(20px, 5vh, 40px);
 }
 
 .info-page-header {
@@ -777,7 +780,7 @@ body {
 .info-page-header .page-title {
   margin: 40px auto 40px;
   color: #000;
-  font-size: 64px;
+  font-size: 48px;
   font-weight: 500;
   font-family: 'SFProText', sans-serif;
   text-align: center;
@@ -805,7 +808,7 @@ body {
 
 .info-content {
   padding: 24px 20px;
-  padding-bottom: 100px;
+  padding-bottom: calc(100px + 16px);
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -834,12 +837,12 @@ body {
   }
 
   .main-title {
-    font-size: 56px;
+    font-size: 42px;
     margin: 36px auto 36px;
   }
   
   .info-page-header .page-title {
-    font-size: 56px;
+    font-size: 42px;
     margin: 36px auto 36px;
   }
 
