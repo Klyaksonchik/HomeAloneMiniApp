@@ -12,7 +12,7 @@ export function SupportProject({ onBack, onNavigate }) {
       </div>
       <div className="info-content">
         <p>
-          Приложение полностью бесплатное, но если вы хотите помочь проекту вырасти и стать частью жизни каждого ответственного хозяина - поддержите нас!
+          Приложение полностью бесплатное, но если вы хотите помочь проекту вырасти и помочь сохранить здоровье и жизни питомцев, поддержите любым удобным для вас способом!
         </p>
         <div className="support-button-container">
           <a 
@@ -47,3 +47,4 @@ export function SupportProject({ onBack, onNavigate }) {
     </div>
   );
 }
+
