@@ -873,6 +873,42 @@ body {
   max-width: 320px;
 }
 
+.info-content h2 {
+  margin: 32px 0 16px 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: #000;
+  font-family: 'SFProText', sans-serif;
+  line-height: 1.4;
+}
+
+.info-content h3 {
+  margin: 24px 0 12px 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: #000;
+  font-family: 'SFProText', sans-serif;
+  line-height: 1.4;
+}
+
+.info-content ul {
+  margin: 12px 0 16px 0;
+  padding-left: 24px;
+  list-style-type: disc;
+}
+
+.info-content li {
+  margin: 8px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #000;
+  font-family: 'SFProText', sans-serif;
+}
+
+.info-content strong {
+  font-weight: 500;
+}
+
 .info-content p:last-child {
   margin-bottom: 0;
 }
