@@ -14,6 +14,11 @@ export function SupportProject({ onBack, onNavigate }) {
         <p>
           Приложение полностью бесплатное, но если вы хотите помочь проекту вырасти и стать частью жизни каждого ответственного хозяина - поддержите нас!
         </p>
+        <div className="support-button-container">
+          <button className="support-button">
+            Поддержать
+          </button>
+        </div>
       </div>
       <div className="bottom-nav">
         <button className="nav-button" onClick={() => onNavigate('home')}>
