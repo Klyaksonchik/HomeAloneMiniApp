@@ -23,7 +23,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   padding: 20px;
-  padding-top: clamp(40px, 8vh, 60px);
+  padding-top: clamp(20px, 4vh, 35px);
   padding-bottom: 100px;
   background: #fff;
   position: relative;
@@ -267,7 +267,7 @@ body {
   max-width: 320px;
   display: flex;
   flex-direction: column;
-  margin-bottom: 20px;
+  margin-bottom: 32px;
 }
 
 .emergency-contact-header {
@@ -992,7 +992,7 @@ body {
 @media (max-width: 480px) {
   .app {
     padding: 16px;
-    padding-top: clamp(50px, 8vh, 80px);
+    padding-top: clamp(20px, 4vh, 40px);
     padding-bottom: 100px;
   }
 
