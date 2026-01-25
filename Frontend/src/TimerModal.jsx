@@ -106,7 +106,13 @@ export function TimerModal({ isAway, onClose, onSetTimer, currentDuration }) {
                       const val = parseInt(e.target.value) || 0;
                       setCustomHours(Math.max(0, Math.min(168, val)));
                     }}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      // Прокручиваем к инпуту при фокусе
+                      setTimeout(() => {
+                        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 300);
+                    }}
                     className="timer-input"
                     placeholder="0"
                   />
@@ -125,7 +131,13 @@ export function TimerModal({ isAway, onClose, onSetTimer, currentDuration }) {
                       const val = parseInt(e.target.value) || 0;
                       setCustomMinutes(Math.max(0, Math.min(59, val)));
                     }}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      // Прокручиваем к инпуту при фокусе
+                      setTimeout(() => {
+                        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 300);
+                    }}
                     className="timer-input"
                     placeholder="0"
                   />
