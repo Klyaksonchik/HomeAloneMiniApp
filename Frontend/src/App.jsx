@@ -350,64 +350,76 @@ export default function App() {
         </div>
       )}
 
+      {/* App Name */}
+      <p className="app-name">Home Alone Pet</p>
+      
       {/* Main Title */}
       <h1 className="main-title">Таймер безопасности</h1>
 
-      {/* Timer Card */}
-      <div className="timer-card">
-        <div className="timer-time">{getDisplayTime()}</div>
-        <button
-          className="timer-edit"
-          onClick={() => setShowTimerModal(true)}
-          disabled={!isTelegramReady}
-        >
-          Изменить
-        </button>
-      </div>
-
-      {/* Toggle */}
-      <div className="toggle">
-        <div 
-          className={`toggle-item ${isHome ? 'active' : ''}`}
-          onClick={() => !isHome && toggleStatus()}
-          style={{ opacity: isTelegramReady && !toggleDisabled ? 1 : 0.6, cursor: (!isHome && isTelegramReady && !toggleDisabled) ? 'pointer' : 'default' }}
-        >
-          Дома
-        </div>
-        <div 
-          className={`toggle-item ${!isHome ? 'active' : ''}`}
-          onClick={() => isHome && toggleStatus()}
-          style={{ opacity: isTelegramReady && !toggleDisabled ? 1 : 0.6, cursor: (isHome && isTelegramReady && !toggleDisabled) ? 'pointer' : 'default' }}
-        >
-          Не дома
+      {/* Timer Display */}
+      <div className="timer-display-container">
+        <div className="timer-display-wrapper">
+          <div className={`timer-large ${!isHome ? 'timer-red' : 'timer-green'}`}>
+            {getDisplayTime()}
+          </div>
+          <button
+            className="change-timer-button"
+            onClick={() => setShowTimerModal(true)}
+            disabled={!isTelegramReady}
+          >
+            Изменить
+          </button>
         </div>
       </div>
 
-      <p className="hint">
-        {isHome 
-          ? "Когда уходишь из дома, сдвинь слайдер в положение «Не дома»"
-          : "Когда вернёшься домой, сдвинь слайдер в положение «Дома»!"
-        }
-      </p>
+      {/* Slider */}
+      <div className="slider-container-new">
+        <div
+          className={`slider-new ${!isHome ? 'slider-red' : 'slider-green'}`}
+          onClick={toggleStatus}
+          style={{ opacity: isTelegramReady && !toggleDisabled ? 1 : 0.6, cursor: toggleDisabled ? 'not-allowed' : 'pointer' }}
+        >
+          <div
+            className={`slider-knob ${!isHome ? 'knob-right' : 'knob-left'}`}
+          >
+            <span className="slider-knob-text">{!isHome ? 'Не дома' : 'Дома'}</span>
+          </div>
+          <div className="slider-labels">
+            <span className={`slider-label ${!isHome ? 'label-visible' : 'label-hidden'}`}>
+              Дома
+            </span>
+            <span className={`slider-label ${isHome ? 'label-visible' : 'label-hidden'}`}>
+              Не дома
+            </span>
+          </div>
+        </div>
+        <p className="slider-hint">
+          {isHome
+            ? <>Когда уходишь из дома,<br />сдвинь слайдер в положение «Не дома»</>
+            : "Когда вернёшься домой, сдвинь слайдер в положение «Дома»!"
+          }
+        </p>
+      </div>
 
       {/* Emergency Contact */}
-      <div className="emergency">
-        <div className="emergency-title">Экстренный контакт</div>
-        <div className="emergency-row">
+      <div className="emergency-contact-container">
+        <h3 className="emergency-contact-title">Экстренный контакт</h3>
+        <div className="contact-input-wrapper-new">
           <input
-            placeholder="@friend"
+            className="contact-input"
+            placeholder="@введите экстренный контакт"
             value={contact}
             onChange={(e) => setContact(e.target.value)}
             disabled={!isTelegramReady || !editingContact}
             onFocus={() => setEditingContact(true)}
           />
           {contact && (
-            <button 
-              className="save-btn"
-              onClick={onContactAction} 
+            <button
+              className="contact-save-btn"
+              onClick={onContactAction}
               disabled={!isTelegramReady}
             >
-              ↑
+              {editingContact ? "Сохранить" : "Изменить"}
             </button>
           )}
         </div>
@@ -432,7 +444,7 @@ export default function App() {
       {/* Bottom Navigation */}
       <nav className="bottom-nav">
         <button 
-          className={`nav-item ${currentPage === 'home' ? 'active' : ''}`}
+          className={`nav-button ${currentPage === 'home' ? 'active' : ''}`}
           onClick={() => setCurrentPage('home')}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -441,7 +453,7 @@ export default function App() {
           </svg>
         </button>
         <button 
-          className={`nav-item ${currentPage === 'how-it-works' ? 'active' : ''}`}
+          className={`nav-button ${currentPage === 'how-it-works' ? 'active' : ''}`}
           onClick={() => setCurrentPage('how-it-works')}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -450,15 +462,13 @@ export default function App() {
           </svg>
         </button>
         <button 
-          className={`nav-item center ${currentPage === 'support' ? 'active' : ''}`}
+          className={`nav-item center nav-button-large ${currentPage === 'support' ? 'active' : ''}`}
           onClick={() => setCurrentPage('support')}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          ✨
         </button>
         <button 
-          className={`nav-item ${currentPage === 'emergency' ? 'active' : ''}`}
+          className={`nav-button ${currentPage === 'emergency' ? 'active' : ''}`}
           onClick={() => setCurrentPage('emergency')}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -468,7 +478,7 @@ export default function App() {
           </svg>
         </button>
         <button 
-          className={`nav-item ${currentPage === 'privacy' ? 'active' : ''}`}
+          className={`nav-button ${currentPage === 'privacy' ? 'active' : ''}`}
           onClick={() => setCurrentPage('privacy')}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
