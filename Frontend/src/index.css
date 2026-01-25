@@ -718,7 +718,7 @@ body {
   left: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.25) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #7a4cff 0%, rgba(122, 76, 255, 0.15) 50%, transparent 80%);
   filter: blur(60px);
   pointer-events: none;
   z-index: 0;
@@ -733,7 +733,7 @@ body {
   right: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.25) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #7a4cff 0%, rgba(122, 76, 255, 0.15) 50%, transparent 80%);
   filter: blur(60px);
   pointer-events: none;
   z-index: 0;
@@ -753,7 +753,7 @@ body {
   padding: 0 20px 20px;
   position: sticky;
   top: 0;
-  background: #fff;
+  background: transparent;
   z-index: 10;
   margin-top: clamp(20px, 5vh, 40px);
 }
@@ -820,6 +820,44 @@ body {
 
 .info-content p:last-child {
   margin-bottom: 0;
+}
+
+/* Support Button */
+.support-button-container {
+  width: 100%;
+  max-width: 320px;
+  margin: 24px auto 0;
+  display: flex;
+  justify-content: center;
+}
+
+.support-button {
+  width: 100%;
+  max-width: 320px;
+  height: 48px;
+  border-radius: 24px;
+  background: rgba(122, 76, 255, 0.2);
+  border: none;
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'SFProText', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.support-button:hover {
+  background: rgba(122, 76, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.support-button:active {
+  transform: translateY(0);
 }
 
 /* Адаптивность */
