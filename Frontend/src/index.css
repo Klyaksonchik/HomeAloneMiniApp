@@ -783,13 +783,22 @@ body {
 
 .info-header {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
   padding: 0 20px 20px;
   position: relative;
   background: transparent;
   z-index: 10;
   margin-top: clamp(20px, 5vh, 40px);
+}
+
+.info-header .app-name {
+  margin: 0;
+  font-size: 18px;
+  text-align: center;
+  flex: 1;
+  font-family: 'SFProText', sans-serif;
 }
 
 .info-page-header {
@@ -852,18 +861,10 @@ body {
   font-family: 'SFProText', sans-serif;
 }
 
-.info-content .app-name {
-  margin: 0 0 0 0;
-  font-size: 18px;
-  text-align: center;
-  width: 100%;
-  margin-bottom: 0;
-}
-
 .info-content .page-title {
   margin: 40px auto 40px;
   color: #000;
-  font-size: 48px;
+  font-size: 36px;
   font-weight: 500;
   font-family: 'SFProText', sans-serif;
   text-align: center;
@@ -957,7 +958,7 @@ body {
     margin: 36px auto 36px;
   }
   
-  .info-page-header .page-title {
+  .info-content .page-title {
     font-size: 32px;
     margin: 36px auto 36px;
   }
