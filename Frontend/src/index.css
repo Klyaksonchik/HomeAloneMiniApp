@@ -29,12 +29,12 @@ body {
 .app::before {
   content: '';
   position: fixed;
-  top: 50%;
+  top: 60%;
   left: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.6) 50%, transparent 80%);
-  filter: blur(80px);
+  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.8) 50%, transparent 80%);
+  filter: blur(60px);
   pointer-events: none;
   z-index: 0;
   transition: all 0.5s ease;
@@ -44,12 +44,12 @@ body {
 .app::after {
   content: '';
   position: fixed;
-  top: 30%;
+  top: 25%;
   right: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.6) 50%, transparent 80%);
-  filter: blur(80px);
+  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.8) 50%, transparent 80%);
+  filter: blur(60px);
   pointer-events: none;
   z-index: 0;
   transition: all 0.5s ease;
@@ -58,11 +58,11 @@ body {
 
 /* Когда не дома - красные эллипсы */
 .app.not-home::before {
-  background: radial-gradient(ellipse, #fe5f6b 0%, rgba(254, 95, 107, 0.6) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #fe5f6b 0%, rgba(254, 95, 107, 0.8) 50%, transparent 80%);
 }
 
 .app.not-home::after {
-  background: radial-gradient(ellipse, #fe5f6b 0%, rgba(254, 95, 107, 0.6) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #fe5f6b 0%, rgba(254, 95, 107, 0.8) 50%, transparent 80%);
 }
 
 .app > * {
@@ -71,7 +71,7 @@ body {
 }
 
 .app-name {
-  margin: 0 0 12px 0;
+  margin: 0 0 0 0;
   color: #666;
   font-size: 18px;
   font-weight: 500;
@@ -81,9 +81,9 @@ body {
 }
 
 .main-title {
-  margin: 12px auto 16px;
+  margin: 24px auto 16px;
   color: #000;
-  font-size: 40px;
+  font-size: 48px;
   font-weight: 500;
   font-family: 'SFProText', sans-serif;
   text-align: center;
@@ -593,6 +593,8 @@ body {
   color: #000;
   padding: 0;
   position: relative;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .nav-button:hover {
@@ -602,11 +604,6 @@ body {
 .nav-button.active {
   background: #BAFE5F;
   color: #000;
-}
-
-.nav-button {
-  font-size: 24px;
-  line-height: 1;
 }
 
 .nav-button svg {
@@ -679,14 +676,12 @@ body {
 }
 
 .nav-item svg {
-  width: 24px;
-  height: 24px;
-  stroke: #000;
-  fill: none;
+  display: none;
 }
 
-.nav-item.center svg {
-  display: none;
+.nav-item {
+  font-size: 24px;
+  line-height: 1;
 }
 
 /* Info Pages */
@@ -705,12 +700,12 @@ body {
 .info-page::before {
   content: '';
   position: fixed;
-  top: 50%;
+  top: 60%;
   left: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.6) 50%, transparent 80%);
-  filter: blur(80px);
+  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.8) 50%, transparent 80%);
+  filter: blur(60px);
   pointer-events: none;
   z-index: 0;
   transition: all 0.5s ease;
@@ -720,12 +715,12 @@ body {
 .info-page::after {
   content: '';
   position: fixed;
-  top: 30%;
+  top: 25%;
   right: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.6) 50%, transparent 80%);
-  filter: blur(80px);
+  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.8) 50%, transparent 80%);
+  filter: blur(60px);
   pointer-events: none;
   z-index: 0;
   transition: all 0.5s ease;
@@ -763,9 +758,9 @@ body {
 }
 
 .info-page-header .page-title {
-  margin: 0 auto 16px;
+  margin: 24px auto 16px;
   color: #000;
-  font-size: 40px;
+  font-size: 48px;
   font-weight: 500;
   font-family: 'SFProText', sans-serif;
   text-align: center;
