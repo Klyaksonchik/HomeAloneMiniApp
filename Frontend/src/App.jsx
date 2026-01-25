@@ -35,6 +35,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [contact, setContact] = useState("");
   const [editingContact, setEditingContact] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
   const [hasServerContact, setHasServerContact] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(3600); // По умолчанию 1 час
   const [showTimerSettings, setShowTimerSettings] = useState(false);
@@ -343,7 +344,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app ${!isHome ? 'not-home' : ''} ${showTimerModal ? 'timer-modal-open' : ''}`}>
+    <div className={`app ${!isHome ? 'not-home' : ''} ${showTimerModal ? 'timer-modal-open' : ''} ${inputFocused ? 'input-focused' : ''}`}>
       {!isTelegramReady && (
         <div className="telegram-hint">
           Откройте мини‑апп из меню бота после команды /start
@@ -422,7 +423,17 @@ export default function App() {
             value={contact}
             onChange={(e) => setContact(e.target.value)}
             disabled={!isTelegramReady || !editingContact}
-            onFocus={() => setEditingContact(true)}
+            onFocus={(e) => {
+              setEditingContact(true);
+              setInputFocused(true);
+              // Прокручиваем к полю ввода при фокусе
+              setTimeout(() => {
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 300);
+            }}
+            onBlur={() => {
+              setInputFocused(false);
+            }}
           />
         </div>
       </div>
