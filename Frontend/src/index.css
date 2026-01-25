@@ -40,7 +40,7 @@ body {
   left: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 1) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.5) 50%, transparent 80%);
   filter: blur(60px);
   pointer-events: none;
   z-index: 0;
@@ -55,7 +55,7 @@ body {
   right: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 1) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.5) 50%, transparent 80%);
   filter: blur(60px);
   pointer-events: none;
   z-index: 0;
@@ -65,11 +65,11 @@ body {
 
 /* Когда не дома - красные эллипсы */
 .app.not-home::before {
-  background: radial-gradient(ellipse, #fe5f6b 0%, rgba(254, 95, 107, 1) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #fe5f6b 0%, rgba(254, 95, 107, 0.5) 50%, transparent 80%);
 }
 
 .app.not-home::after {
-  background: radial-gradient(ellipse, #fe5f6b 0%, rgba(254, 95, 107, 1) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #fe5f6b 0%, rgba(254, 95, 107, 0.5) 50%, transparent 80%);
 }
 
 .app > * {
@@ -88,7 +88,7 @@ body {
 }
 
 .main-title {
-  margin: 20px auto 20px;
+  margin: 32px auto 32px;
   color: #000;
   font-size: 56px;
   font-weight: 500;
@@ -701,7 +701,7 @@ body {
   position: relative;
   overflow-y: hidden;
   overflow-x: hidden;
-  padding-bottom: 100px;
+  padding-bottom: 0;
   padding-top: clamp(20px, 5vh, 40px);
 }
 
@@ -712,7 +712,7 @@ body {
   left: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 1) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.5) 50%, transparent 80%);
   filter: blur(60px);
   pointer-events: none;
   z-index: 0;
@@ -727,7 +727,7 @@ body {
   right: -100px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 1) 50%, transparent 80%);
+  background: radial-gradient(ellipse, #BAFE5F 0%, rgba(186, 254, 95, 0.5) 50%, transparent 80%);
   filter: blur(60px);
   pointer-events: none;
   z-index: 0;
@@ -766,7 +766,7 @@ body {
 }
 
 .info-page-header .page-title {
-  margin: 20px auto 20px;
+  margin: 32px auto 32px;
   color: #000;
   font-size: 56px;
   font-weight: 500;
