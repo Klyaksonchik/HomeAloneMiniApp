@@ -271,6 +271,8 @@ body {
 }
 
 .emergency-contact-header {
+  width: 100%;
+  max-width: 320px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -296,6 +298,7 @@ body {
   cursor: pointer;
   padding: 0;
   transition: opacity 0.3s;
+  margin-left: auto;
 }
 
 .change-contact-button:hover:not(:disabled) {
