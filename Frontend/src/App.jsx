@@ -343,7 +343,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app ${!isHome ? 'not-home' : ''}`}>
+    <div className={`app ${!isHome ? 'not-home' : ''} ${showTimerModal ? 'timer-modal-open' : ''}`}>
       {!isTelegramReady && (
         <div className="telegram-hint">
           Откройте мини‑апп из меню бота после команды /start
@@ -403,7 +403,18 @@ export default function App() {
 
       {/* Emergency Contact */}
       <div className="emergency-contact-container">
-        <h3 className="emergency-contact-title">Экстренный контакт</h3>
+        <div className="emergency-contact-header">
+          <h3 className="emergency-contact-title">Экстренный контакт</h3>
+          {contact && (
+            <button
+              className="change-contact-button"
+              onClick={onContactAction}
+              disabled={!isTelegramReady}
+            >
+              {editingContact ? "Сохранить" : "Изменить"}
+            </button>
+          )}
+        </div>
         <div className="contact-input-wrapper-new">
           <input
             className="contact-input"
@@ -413,15 +424,6 @@ export default function App() {
             disabled={!isTelegramReady || !editingContact}
             onFocus={() => setEditingContact(true)}
           />
-          {contact && (
-            <button
-              className="contact-save-btn"
-              onClick={onContactAction}
-              disabled={!isTelegramReady}
-            >
-              {editingContact ? "Сохранить" : "Изменить"}
-            </button>
-          )}
         </div>
       </div>
 
