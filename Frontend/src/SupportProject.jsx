@@ -16,7 +16,7 @@ export function SupportProject({ onBack, onNavigate }) {
         </p>
         <div className="support-button-container">
           <a 
-            href="https://i.postimg.cc/43yHG1xZ/photo-2026-01-21-21-05-46.jpg" 
+            href="https://taplink.cc/homealonepet" 
             target="_blank" 
             rel="noopener noreferrer"
             className="support-button-link"
@@ -47,4 +47,5 @@ export function SupportProject({ onBack, onNavigate }) {
     </div>
   );
 }
+
 
