@@ -341,38 +341,44 @@ def _cors_allowed_origins():
     return default + [x.strip() for x in extra.split(",") if x.strip()]
 
 
-def _raw_init_data_from_request() -> str | None:
+def _raw_init_data_candidates() -> list[str]:
     """
-    initData из заголовка (предпочтительно), Authorization: tma …, query init_data
-    или JSON-поля init_data — на случай если прокси/клиент режет нестандартные заголовки.
+    Все непустые варианты initData из запроса. Длинные строки идут первыми:
+    иногда заголовок обрезают прокси, а query/body содержат полный payload.
     """
-    raw = (request.headers.get(INIT_DATA_HEADER) or "").strip()
-    if raw:
-        return raw
-    raw = (request.headers.get("X-Telegram-Web-App-Init-Data") or "").strip()
-    if raw:
-        return raw
+    seen: set[str] = set()
+    chunks: list[str] = []
+
+    def add(s: str | None) -> None:
+        t = (s or "").strip()
+        if not t or t in seen:
+            return
+        seen.add(t)
+        chunks.append(t)
+
+    add(request.headers.get(INIT_DATA_HEADER))
+    add(request.headers.get("X-Telegram-Web-App-Init-Data"))
     auth = (request.headers.get("Authorization") or "").strip()
     if auth[:4].lower() == "tma " and len(auth) > 4:
-        return auth[4:].strip()
-    raw = (request.args.get("init_data") or "").strip()
-    if raw:
-        return raw
+        add(auth[4:])
+    add(request.args.get("init_data"))
     if request.is_json:
         body = request.get_json(silent=True) or {}
         if isinstance(body, dict):
             b = body.get("init_data")
-            if isinstance(b, str) and b.strip():
-                return b.strip()
-    return None
+            if isinstance(b, str):
+                add(b)
+    chunks.sort(key=len, reverse=True)
+    return chunks
 
 
 def get_authenticated_telegram_user_id() -> int | None:
     """user_id только из проверенного initData (не из поля user_id в теле)."""
-    raw = _raw_init_data_from_request()
-    if not raw:
-        return None
-    return telegram_user_id_from_init_data(raw, BOT_TOKEN)
+    for raw in _raw_init_data_candidates():
+        uid = telegram_user_id_from_init_data(raw, BOT_TOKEN)
+        if uid is not None:
+            return uid
+    return None
 
 
 app = Flask(__name__)
