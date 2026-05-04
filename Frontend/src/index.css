@@ -141,6 +141,35 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Тот же визуальный «слот», что и у крупных цифр — без скачка вёрстки */
+.timer-large.timer-large--expired-slot {
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 500;
+  font-variant-numeric: normal;
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+.timer-expired-inline {
+  margin: 0;
+  width: 100%;
+  max-width: 300px;
+  text-align: center;
+  background: rgba(254, 95, 107, 0.22);
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(254, 95, 107, 0.35);
+  color: #000;
+  font-family: 'SFProText', sans-serif;
+  box-sizing: border-box;
+}
+
 .timer-green {
   color: #000;
 }
@@ -372,19 +401,6 @@ body {
 .contact-save-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.timer-expired {
-  font-size: 18px;
-  font-weight: 500;
-  font-family: 'SFProText', sans-serif;
-  margin: 20px;
-  color: #000;
-  text-align: center;
-  background: rgba(254, 95, 107, 0.2);
-  padding: 16px 24px;
-  border-radius: 12px;
-  border: 1px solid rgba(254, 95, 107, 0.3);
 }
 
 /* Timer Modal */
@@ -1016,6 +1032,11 @@ body {
     font-size: 52px;
   }
 
+  .timer-large.timer-large--expired-slot {
+    min-height: 84px;
+    font-size: 15px;
+  }
+
   .slider-container-new,
   .emergency-contact-container,
   .timer-display-container {
@@ -1047,6 +1068,11 @@ body {
 @media (max-width: 360px) {
   .timer-large {
     font-size: 44px;
+  }
+
+  .timer-large.timer-large--expired-slot {
+    min-height: 80px;
+    font-size: 14px;
   }
 
   .nav-button {
