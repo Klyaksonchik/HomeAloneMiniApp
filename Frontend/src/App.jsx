@@ -6,7 +6,20 @@ import { SupportProject } from "./SupportProject";
 import { EmergencyGuide } from "./EmergencyGuide";
 import { PrivacyPolicy } from "./PrivacyPolicy";
 
-const BACKEND_URL = "https://homealoneminiapp.onrender.com";
+const BACKEND_URL =
+  process.env.REACT_APP_BACKEND_URL || "https://homealoneminiapp.onrender.com";
+
+const api = axios.create({ baseURL: BACKEND_URL });
+
+api.interceptors.request.use((config) => {
+  const raw =
+    typeof window !== "undefined" ? window.Telegram?.WebApp?.initData : "";
+  if (raw) {
+    config.headers = config.headers || {};
+    config.headers["X-Telegram-Init-Data"] = raw;
+  }
+  return config;
+});
 const LS_KEY_CONTACT = "homealone_emergency_contact";
 const LS_KEY_TIMER = "homealone_timer";
 
@@ -59,7 +72,7 @@ export default function App() {
     if (!userId) return;
     const loadStatus = async () => {
       try {
-        const r = await axios.get(`${BACKEND_URL}/status`, { params: { user_id: userId } });
+        const r = await api.get("/status");
         const serverStatus = r?.data?.status;
         setIsHome(serverStatus === "не дома" ? false : true);
         setHasServerContact(Boolean(r?.data?.emergency_contact_set));
@@ -84,8 +97,8 @@ export default function App() {
 
   useEffect(() => {
     if (!userId) return;
-    axios
-      .get(`${BACKEND_URL}/contact`, { params: { user_id: userId } })
+    api
+      .get("/contact")
       .then((r) => {
         const c = r?.data?.emergency_contact || "";
         if (c) {
@@ -166,16 +179,14 @@ export default function App() {
         setIsHome(false);
         setTimeLeft(finalTimerSeconds);
         setTimerExpired(false);
-        await axios.post(`${BACKEND_URL}/status`, {
-          user_id: Number(userId),
+        await api.post("/status", {
           status: "не дома",
           username: usernameFromTG,
           timer_seconds: finalTimerSeconds,
         });
         // Сохраняем таймер на сервере
         try {
-          await axios.post(`${BACKEND_URL}/timer`, {
-            user_id: Number(userId),
+          await api.post("/timer", {
             timer_seconds: finalTimerSeconds,
           });
         } catch {}
@@ -183,21 +194,24 @@ export default function App() {
         setIsHome(true);
         setTimeLeft(null);
         setTimerExpired(false);
-        await axios.post(`${BACKEND_URL}/status`, {
-          user_id: Number(userId),
+        await api.post("/status", {
           status: "дома",
           username: usernameFromTG,
         });
       }
     } catch (e) {
-      const msg = e?.response?.data?.error || e?.message || "Ошибка запроса";
-      if (msg === "contact_required") {
+      const code = e?.response?.data?.error;
+      const human = e?.response?.data?.message;
+      const msg = human || code || e?.message || "Ошибка запроса";
+      if (code === "unauthorized") {
+        alert("Сессия Telegram недействительна. Закройте мини‑апп и откройте снова из чата с ботом.");
+      } else if (code === "contact_required") {
         alert("Сначала укажите экстренный контакт (@username).");
       } else {
         alert(msg);
       }
       try {
-        const r = await axios.get(`${BACKEND_URL}/status`, { params: { user_id: userId } });
+        const r = await api.get("/status");
         const serverStatus = r?.data?.status;
         setIsHome(serverStatus === "не дома" ? false : true);
       } catch {}
@@ -208,10 +222,11 @@ export default function App() {
 
   const onContactAction = async () => {
     if (!userId) return;
-    if (!editingContact) {
+    if (!editingContact && hasServerContact) {
       setEditingContact(true);
       return;
     }
+
     let value = (contact || "").trim();
     if (value && !value.startsWith("@")) value = `@${value}`;
     if (!value || value === "@") {
@@ -219,8 +234,7 @@ export default function App() {
       return;
     }
     try {
-      await axios.post(`${BACKEND_URL}/contact`, {
-        user_id: Number(userId),
+      await api.post("/contact", {
         contact: value,
       });
       setContact(value);
@@ -231,7 +245,12 @@ export default function App() {
       } catch {}
       alert("Контакт сохранён");
     } catch (e) {
-      alert(e?.response?.data?.error || e?.message || "Ошибка сохранения контакта");
+      const code = e?.response?.data?.error;
+      if (code === "unauthorized") {
+        alert("Сессия Telegram недействительна. Закройте мини‑апп и откройте снова из чата с ботом.");
+      } else {
+        alert(e?.response?.data?.error || e?.message || "Ошибка сохранения контакта");
+      }
     }
   };
 
@@ -247,8 +266,7 @@ export default function App() {
     }
 
     try {
-      await axios.post(`${BACKEND_URL}/timer`, {
-        user_id: Number(userId),
+      await api.post("/timer", {
         timer_seconds: finalTimerSeconds,
       });
       setTimerSeconds(finalTimerSeconds);
@@ -272,8 +290,7 @@ export default function App() {
     const isPreset = TIMER_PRESETS.some(p => p.value === totalSeconds);
     
     try {
-      await axios.post(`${BACKEND_URL}/timer`, {
-        user_id: Number(userId),
+      await api.post("/timer", {
         timer_seconds: totalSeconds,
       });
       
@@ -296,6 +313,18 @@ export default function App() {
   };
 
   const isTelegramReady = !!userId;
+  const hasContactText = !!(contact && contact.trim());
+  const contactInputLocked =
+    isTelegramReady && hasServerContact && hasContactText && !editingContact;
+  const contactButtonLabel = editingContact
+    ? "Сохранить"
+    : hasServerContact
+      ? "Изменить"
+      : "Сохранить";
+  const showContactButton =
+    isTelegramReady &&
+    (hasContactText || editingContact || hasServerContact);
+
   const toggleDisabled = !isTelegramReady || busy || !(contact && contact.trim().length > 1);
 
   // Функция для получения текста выбранного таймера
@@ -406,23 +435,29 @@ export default function App() {
       <div className="emergency-contact-container">
         <div className="emergency-contact-header">
           <h3 className="emergency-contact-title">Экстренный контакт</h3>
-          {contact && (
+          {showContactButton && (
             <button
               className="change-contact-button"
               onClick={onContactAction}
               disabled={!isTelegramReady}
             >
-              {editingContact ? "Сохранить" : "Изменить"}
+              {contactButtonLabel}
             </button>
           )}
         </div>
-        <div className="contact-input-wrapper-new">
+        <div
+          className="contact-input-wrapper-new"
+          onClick={() => {
+            if (contactInputLocked) setEditingContact(true);
+          }}
+        >
           <input
             className="contact-input"
             placeholder="@введите экстренный контакт"
             value={contact}
             onChange={(e) => setContact(e.target.value)}
-            disabled={!isTelegramReady || !editingContact}
+            disabled={!isTelegramReady}
+            readOnly={contactInputLocked}
             onFocus={(e) => {
               setEditingContact(true);
               setInputFocused(true);
