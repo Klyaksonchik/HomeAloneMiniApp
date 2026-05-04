@@ -422,11 +422,21 @@ export default function App() {
       {/* Main Title */}
       <h1 className="main-title">Таймер безопасности</h1>
 
-      {/* Timer Display */}
+      {/* Timer Display: при истечении времени «не дома» текст вместо цифр */}
       <div className="timer-display-container">
         <div className="timer-display-wrapper">
-          <div className={`timer-large ${!isHome ? 'timer-red' : 'timer-green'}`}>
-            {getDisplayTime()}
+          <div
+            className={`timer-large ${!isHome ? 'timer-red' : 'timer-green'}${
+              !isHome && timerExpired ? " timer-large--expired-slot" : ""
+            }`}
+          >
+            {!isHome && timerExpired ? (
+              <p className="timer-expired-inline">
+                ⏰ Время вышло! Если ты в порядке, сдвинь слайдер в положение «Дома»
+              </p>
+            ) : (
+              getDisplayTime()
+            )}
           </div>
           <button
             className="change-timer-button"
@@ -508,12 +518,6 @@ export default function App() {
           />
         </div>
       </div>
-
-      {!isHome && timerExpired && (
-        <div className="timer-expired">
-          ⏰ Время вышло! Если ты в порядке, сдвинь слайдер в положение «Дома»
-        </div>
-      )}
 
       {/* Timer Modal */}
       {showTimerModal && (
