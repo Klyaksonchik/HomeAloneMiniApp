@@ -372,13 +372,42 @@ def _raw_init_data_candidates() -> list[str]:
     return chunks
 
 
+def _legacy_user_id_from_request() -> int | None:
+    """
+    Как в исходном приложении: user_id из JSON или query.
+    Включается только если TELEGRAM_WEBAPP_ALLOW_LEGACY_USER_ID=1 (по умолчанию да —
+    иначе пустой/битый initData в части клиентов Telegram ломает мини‑апп).
+    Для жёсткой проверки подписи выставьте TELEGRAM_WEBAPP_ALLOW_LEGACY_USER_ID=0 на Render.
+    """
+    allow = os.environ.get("TELEGRAM_WEBAPP_ALLOW_LEGACY_USER_ID", "1").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    if not allow:
+        return None
+    candidate = None
+    if request.is_json:
+        body = request.get_json(silent=True) or {}
+        if isinstance(body, dict):
+            candidate = body.get("user_id")
+    if candidate is None:
+        candidate = request.args.get("user_id")
+    if candidate is None:
+        return None
+    try:
+        return int(candidate)
+    except (TypeError, ValueError):
+        return None
+
+
 def get_authenticated_telegram_user_id() -> int | None:
-    """user_id только из проверенного initData (не из поля user_id в теле)."""
+    """Сначала проверенный initData; при отсутствии/ошибке — опционально legacy user_id."""
     for raw in _raw_init_data_candidates():
         uid = telegram_user_id_from_init_data(raw, BOT_TOKEN)
         if uid is not None:
             return uid
-    return None
+    return _legacy_user_id_from_request()
 
 
 app = Flask(__name__)
