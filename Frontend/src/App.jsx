@@ -39,6 +39,8 @@ api.interceptors.request.use((config) => {
   const h = config.headers;
   if (h && typeof h.set === "function") {
     h.set("X-Telegram-Init-Data", raw);
+    // Дублируем в Authorization — часть прокси лучше пропускает стандартный заголовок.
+    h.set("Authorization", `tma ${raw}`);
   }
   return config;
 });
