@@ -8,9 +8,30 @@ import json
 import logging
 import time
 from typing import Any
-from urllib.parse import parse_qsl
+from urllib.parse import unquote
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_init_data_pairs(init_data: str) -> dict[str, str]:
+    """
+    Разбор строки initData как query string.
+    Важно: не использовать parse_qsl — он применяет unquote_plus и '+' становится пробелом,
+    из‑за чего подпись не совпадает с тем, что считает Telegram.
+    См. https://stackoverflow.com/a/72391757
+    """
+    init_data = (init_data or "").strip()
+    if init_data.startswith("?"):
+        init_data = init_data[1:]
+    out: dict[str, str] = {}
+    for part in init_data.split("&"):
+        if not part or "=" not in part:
+            continue
+        key, _, val = part.partition("=")
+        k = unquote(key)
+        v = unquote(val)
+        out[k] = v
+    return out
 
 
 def validate_telegram_init_data(
@@ -21,35 +42,28 @@ def validate_telegram_init_data(
 ) -> dict[str, Any] | None:
     """
     Проверяет подпись initData и свежесть auth_date.
-    Возвращает словарь полей (без hash/signature) или None.
     https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
     """
     if not init_data or not bot_token:
         return None
     try:
-        pairs = parse_qsl(init_data, keep_blank_values=True, strict_parsing=False)
-    except ValueError:
+        data = _parse_init_data_pairs(init_data)
+    except Exception:
         return None
-    data = dict(pairs)
     received_hash = data.pop("hash", None)
     data.pop("signature", None)
     if not received_hash:
         return None
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
     dcs = data_check_string.encode("utf-8")
-    # В документации формулировка двусмысленна: пробуем оба порядка key/msg для первого HMAC.
-    secret_keys = (
-        hmac.new(b"WebAppData", bot_token.encode("utf-8"), hashlib.sha256).digest(),
-        hmac.new(bot_token.encode("utf-8"), b"WebAppData", hashlib.sha256).digest(),
-    )
-    if not any(
-        hmac.compare_digest(
-            hmac.new(sk, dcs, hashlib.sha256).hexdigest(),
-            received_hash,
-        )
-        for sk in secret_keys
-    ):
-        logger.debug("initData: подпись не сошлась ни с одним вариантом secret_key")
+    secret_key = hmac.new(
+        b"WebAppData",
+        bot_token.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    computed = hmac.new(secret_key, dcs, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(computed, received_hash):
+        logger.warning("initData: подпись не сошлась (проверьте BOT_TOKEN и целостность строки)")
         return None
     auth_date_raw = data.get("auth_date")
     if auth_date_raw:
