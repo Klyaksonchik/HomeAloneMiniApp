@@ -7,12 +7,15 @@ from contextlib import contextmanager
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram.error import Conflict
 
 from models import SessionLocal, User, init_db
+from telegram_webapp_auth import telegram_user_id_from_init_data
 
 # -------------------- Логирование --------------------
 logging.basicConfig(level=logging.INFO)
@@ -321,8 +324,45 @@ def schedule_sequence_for_user(user_id: int, timer_seconds: int = None) -> None:
 
 
 # -------------------- Flask app --------------------
+INIT_DATA_HEADER = "X-Telegram-Init-Data"
+
+
+def _cors_allowed_origins():
+    default = [
+        "https://web.telegram.org",
+        "https://webk.telegram.org",
+        "https://telegram.org",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+    extra = os.environ.get("EXTRA_CORS_ORIGINS", "").strip()
+    if not extra:
+        return default
+    return default + [x.strip() for x in extra.split(",") if x.strip()]
+
+
+def get_authenticated_telegram_user_id() -> int | None:
+    """user_id только из подписанного initData заголовка (не из тела запроса)."""
+    raw = request.headers.get(INIT_DATA_HEADER, "").strip()
+    if not raw:
+        return None
+    return telegram_user_id_from_init_data(raw, BOT_TOKEN)
+
+
 app = Flask(__name__)
-CORS(app)
+CORS(
+    app,
+    origins=_cors_allowed_origins(),
+    supports_credentials=False,
+    allow_headers=["Content-Type", INIT_DATA_HEADER],
+)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["180 per minute"],
+    storage_uri="memory://",
+)
 
 
 @app.route("/")
@@ -332,21 +372,29 @@ def root() -> str:
 
 @app.route("/status", methods=["POST"])
 @cross_origin()
+@limiter.limit("45 per minute")
 def http_update_status():
     try:
+        user_id = get_authenticated_telegram_user_id()
+        if user_id is None:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "unauthorized",
+                        "message": "Откройте мини‑апп из Telegram или обновите страницу.",
+                    }
+                ),
+                401,
+            )
+
         payload = request.json or {}
-        user_id = payload.get("user_id")
         status = payload.get("status")
         username = payload.get("username")
         timer_seconds = payload.get("timer_seconds")  # Новый параметр для таймера
 
-        if user_id is None or status not in ("дома", "не дома"):
+        if status not in ("дома", "не дома"):
             return jsonify({"success": False, "error": "Invalid data"}), 400
-
-        try:
-            user_id = int(user_id)
-        except Exception:
-            return jsonify({"success": False, "error": "Invalid user_id"}), 400
 
         with get_db_session() as db:
             user = db.query(User).filter(User.user_id == user_id).first()
@@ -409,17 +457,13 @@ def http_update_status():
 
 @app.route("/status", methods=["GET"])
 @cross_origin()
+@limiter.limit("90 per minute")
 def http_get_status():
     try:
-        user_id = request.args.get("user_id")
+        user_id = get_authenticated_telegram_user_id()
         if user_id is None:
-            return jsonify({"error": "user_id is required"}), 400
-        
-        try:
-            user_id = int(user_id)
-        except (ValueError, TypeError):
-            return jsonify({"error": "Invalid user_id"}), 400
-        
+            return jsonify({"error": "unauthorized"}), 401
+
         user_data = get_user(user_id)
         status = user_data.get("status") or "дома"
         
@@ -457,21 +501,29 @@ def http_get_status():
         }), 200
     except Exception as e:
         logger.exception("❌ Ошибка GET /status: %s", e)
-        return jsonify({"error": "Internal server error", "message": str(e)}), 500
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/contact", methods=["POST", "GET"])
 @cross_origin()
+@limiter.limit("60 per minute")
 def http_update_contact():
+    user_id = get_authenticated_telegram_user_id()
+    if user_id is None:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "unauthorized",
+                    "message": "Откройте мини‑апп из Telegram.",
+                }
+            ),
+            401,
+        )
+
     if request.method == "POST":
         payload = request.json or {}
-        user_id = payload.get("user_id")
         contact = payload.get("contact")
-
-        try:
-            user_id = int(user_id)
-        except Exception:
-            return jsonify({"success": False, "error": "Invalid user_id"}), 400
 
         if not isinstance(contact, str):
             return jsonify({"success": False, "error": "Invalid contact"}), 400
@@ -515,12 +567,6 @@ def http_update_contact():
         return jsonify({"success": True})
 
     # GET
-    user_id = request.args.get("user_id")
-    try:
-        user_id = int(user_id)
-    except Exception:
-        return jsonify({"emergency_contact": ""}), 200
-
     user_data = get_user(user_id)
     value = user_data.get("emergency_contact_username") if user_data and user_data.get("emergency_contact_username") else ""
     return jsonify({"emergency_contact": value}), 200
@@ -528,15 +574,27 @@ def http_update_contact():
 
 @app.route("/timer", methods=["POST", "GET"])
 @cross_origin()
+@limiter.limit("60 per minute")
 def http_timer():
     """Эндпоинт для работы с таймером"""
+    user_id = get_authenticated_telegram_user_id()
+    if user_id is None:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "unauthorized",
+                    "message": "Откройте мини‑апп из Telegram.",
+                }
+            ),
+            401,
+        )
+
     if request.method == "POST":
         payload = request.json or {}
-        user_id = payload.get("user_id")
         timer_seconds = payload.get("timer_seconds")
 
         try:
-            user_id = int(user_id)
             timer_seconds = int(timer_seconds)
             if timer_seconds < 60:  # Минимум 1 минута
                 return jsonify({"success": False, "error": "Timer must be at least 60 seconds"}), 400
@@ -547,12 +605,6 @@ def http_timer():
         return jsonify({"success": True})
 
     # GET
-    user_id = request.args.get("user_id")
-    try:
-        user_id = int(user_id)
-    except Exception:
-        return jsonify({"timer_seconds": 3600}), 200
-
     user_data = get_user(user_id)
     return jsonify({"timer_seconds": user_data.get("timer_seconds") if user_data else 3600}), 200
 
@@ -567,7 +619,11 @@ def run_flask() -> None:
 
 
 @app.route("/debug", methods=["GET"])
+@limiter.limit("10 per minute")
 def http_debug():
+    secret = os.environ.get("DEBUG_SECRET", "").strip()
+    if not secret or request.headers.get("X-Debug-Secret", "").strip() != secret:
+        return jsonify({"error": "not found"}), 404
     try:
         with get_db_session() as db:
             users = db.query(User).all()
