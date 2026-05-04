@@ -1,5 +1,6 @@
 flask
 flask-cors
+Flask-Limiter>=3.5.0
 python-telegram-bot==20.3
 sqlalchemy
 psycopg2-binary
