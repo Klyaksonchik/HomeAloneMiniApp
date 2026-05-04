@@ -21,16 +21,21 @@ function getWebAppInitData() {
   }
 }
 
-/** Дублируем initData в query/body: часть клиентов/прокси плохо передаёт кастомные заголовки в axios 1.x. */
-function initDataQuery() {
+/** initData + user_id: бэкенд проверяет подпись; при пустом initData — тот же user_id, что в исходном приложении. */
+function initDataQuery(userId) {
   const raw = getWebAppInitData();
-  return raw ? { init_data: raw } : {};
+  const p = {};
+  if (userId != null && userId !== "") p.user_id = Number(userId);
+  if (raw) p.init_data = raw;
+  return p;
 }
 
-function withInitData(body) {
+function withInitData(body, userId) {
   const raw = getWebAppInitData();
-  if (!raw) return body || {};
-  return { ...(body || {}), init_data: raw };
+  const base = { ...(body || {}) };
+  if (userId != null && userId !== "") base.user_id = Number(userId);
+  if (raw) base.init_data = raw;
+  return base;
 }
 
 api.interceptors.request.use((config) => {
@@ -96,7 +101,7 @@ export default function App() {
     if (!userId) return;
     const loadStatus = async () => {
       try {
-        const r = await api.get("/status", { params: initDataQuery() });
+        const r = await api.get("/status", { params: initDataQuery(userId) });
         const serverStatus = r?.data?.status;
         setIsHome(serverStatus === "не дома" ? false : true);
         setHasServerContact(Boolean(r?.data?.emergency_contact_set));
@@ -122,7 +127,7 @@ export default function App() {
   useEffect(() => {
     if (!userId) return;
     api
-      .get("/contact", { params: initDataQuery() })
+      .get("/contact", { params: initDataQuery(userId) })
       .then((r) => {
         const c = r?.data?.emergency_contact || "";
         if (c) {
@@ -205,17 +210,20 @@ export default function App() {
         setTimerExpired(false);
         await api.post(
           "/status",
-          withInitData({
-            status: "не дома",
-            username: usernameFromTG,
-            timer_seconds: finalTimerSeconds,
-          })
+          withInitData(
+            {
+              status: "не дома",
+              username: usernameFromTG,
+              timer_seconds: finalTimerSeconds,
+            },
+            userId
+          )
         );
         // Сохраняем таймер на сервере
         try {
           await api.post(
             "/timer",
-            withInitData({ timer_seconds: finalTimerSeconds })
+            withInitData({ timer_seconds: finalTimerSeconds }, userId)
           );
         } catch {}
       } else {
@@ -224,10 +232,13 @@ export default function App() {
         setTimerExpired(false);
         await api.post(
           "/status",
-          withInitData({
-            status: "дома",
-            username: usernameFromTG,
-          })
+          withInitData(
+            {
+              status: "дома",
+              username: usernameFromTG,
+            },
+            userId
+          )
         );
       }
     } catch (e) {
@@ -242,7 +253,7 @@ export default function App() {
         alert(msg);
       }
       try {
-        const r = await api.get("/status", { params: initDataQuery() });
+        const r = await api.get("/status", { params: initDataQuery(userId) });
         const serverStatus = r?.data?.status;
         setIsHome(serverStatus === "не дома" ? false : true);
       } catch {}
@@ -265,7 +276,7 @@ export default function App() {
       return;
     }
     try {
-      await api.post("/contact", withInitData({ contact: value }));
+      await api.post("/contact", withInitData({ contact: value }, userId));
       setContact(value);
       setEditingContact(false);
       setHasServerContact(true);
@@ -295,7 +306,7 @@ export default function App() {
     }
 
     try {
-      await api.post("/timer", withInitData({ timer_seconds: finalTimerSeconds }));
+      await api.post("/timer", withInitData({ timer_seconds: finalTimerSeconds }, userId));
       setTimerSeconds(finalTimerSeconds);
       setShowTimerSettings(false);
       setShowTimerModal(false);
@@ -317,7 +328,7 @@ export default function App() {
     const isPreset = TIMER_PRESETS.some(p => p.value === totalSeconds);
     
     try {
-      await api.post("/timer", withInitData({ timer_seconds: totalSeconds }));
+      await api.post("/timer", withInitData({ timer_seconds: totalSeconds }, userId));
       
       setTimerSeconds(totalSeconds);
       setUseCustomTimer(!isPreset);
