@@ -36,18 +36,20 @@ def validate_telegram_init_data(
     if not received_hash:
         return None
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
-    secret_key = hmac.new(
-        b"WebAppData",
-        bot_token.encode("utf-8"),
-        hashlib.sha256,
-    ).digest()
-    computed = hmac.new(
-        secret_key,
-        data_check_string.encode("utf-8"),
-        hashlib.sha256,
-    ).hexdigest()
-    if not hmac.compare_digest(computed, received_hash):
-        logger.warning("initData: неверная подпись")
+    dcs = data_check_string.encode("utf-8")
+    # В документации формулировка двусмысленна: пробуем оба порядка key/msg для первого HMAC.
+    secret_keys = (
+        hmac.new(b"WebAppData", bot_token.encode("utf-8"), hashlib.sha256).digest(),
+        hmac.new(bot_token.encode("utf-8"), b"WebAppData", hashlib.sha256).digest(),
+    )
+    if not any(
+        hmac.compare_digest(
+            hmac.new(sk, dcs, hashlib.sha256).hexdigest(),
+            received_hash,
+        )
+        for sk in secret_keys
+    ):
+        logger.debug("initData: подпись не сошлась ни с одним вариантом secret_key")
         return None
     auth_date_raw = data.get("auth_date")
     if auth_date_raw:
