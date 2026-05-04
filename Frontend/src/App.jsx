@@ -11,12 +11,34 @@ const BACKEND_URL =
 
 const api = axios.create({ baseURL: BACKEND_URL });
 
+/** Сырые initData для проверки на бэкенде (не путать с initDataUnsafe). */
+function getWebAppInitData() {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.Telegram?.WebApp?.initData || "";
+  } catch {
+    return "";
+  }
+}
+
+/** Дублируем initData в query/body: часть клиентов/прокси плохо передаёт кастомные заголовки в axios 1.x. */
+function initDataQuery() {
+  const raw = getWebAppInitData();
+  return raw ? { init_data: raw } : {};
+}
+
+function withInitData(body) {
+  const raw = getWebAppInitData();
+  if (!raw) return body || {};
+  return { ...(body || {}), init_data: raw };
+}
+
 api.interceptors.request.use((config) => {
-  const raw =
-    typeof window !== "undefined" ? window.Telegram?.WebApp?.initData : "";
-  if (raw) {
-    config.headers = config.headers || {};
-    config.headers["X-Telegram-Init-Data"] = raw;
+  const raw = getWebAppInitData();
+  if (!raw) return config;
+  const h = config.headers;
+  if (h && typeof h.set === "function") {
+    h.set("X-Telegram-Init-Data", raw);
   }
   return config;
 });
@@ -72,7 +94,7 @@ export default function App() {
     if (!userId) return;
     const loadStatus = async () => {
       try {
-        const r = await api.get("/status");
+        const r = await api.get("/status", { params: initDataQuery() });
         const serverStatus = r?.data?.status;
         setIsHome(serverStatus === "не дома" ? false : true);
         setHasServerContact(Boolean(r?.data?.emergency_contact_set));
@@ -98,7 +120,7 @@ export default function App() {
   useEffect(() => {
     if (!userId) return;
     api
-      .get("/contact")
+      .get("/contact", { params: initDataQuery() })
       .then((r) => {
         const c = r?.data?.emergency_contact || "";
         if (c) {
@@ -179,25 +201,32 @@ export default function App() {
         setIsHome(false);
         setTimeLeft(finalTimerSeconds);
         setTimerExpired(false);
-        await api.post("/status", {
-          status: "не дома",
-          username: usernameFromTG,
-          timer_seconds: finalTimerSeconds,
-        });
+        await api.post(
+          "/status",
+          withInitData({
+            status: "не дома",
+            username: usernameFromTG,
+            timer_seconds: finalTimerSeconds,
+          })
+        );
         // Сохраняем таймер на сервере
         try {
-          await api.post("/timer", {
-            timer_seconds: finalTimerSeconds,
-          });
+          await api.post(
+            "/timer",
+            withInitData({ timer_seconds: finalTimerSeconds })
+          );
         } catch {}
       } else {
         setIsHome(true);
         setTimeLeft(null);
         setTimerExpired(false);
-        await api.post("/status", {
-          status: "дома",
-          username: usernameFromTG,
-        });
+        await api.post(
+          "/status",
+          withInitData({
+            status: "дома",
+            username: usernameFromTG,
+          })
+        );
       }
     } catch (e) {
       const code = e?.response?.data?.error;
@@ -211,7 +240,7 @@ export default function App() {
         alert(msg);
       }
       try {
-        const r = await api.get("/status");
+        const r = await api.get("/status", { params: initDataQuery() });
         const serverStatus = r?.data?.status;
         setIsHome(serverStatus === "не дома" ? false : true);
       } catch {}
@@ -234,9 +263,7 @@ export default function App() {
       return;
     }
     try {
-      await api.post("/contact", {
-        contact: value,
-      });
+      await api.post("/contact", withInitData({ contact: value }));
       setContact(value);
       setEditingContact(false);
       setHasServerContact(true);
@@ -266,9 +293,7 @@ export default function App() {
     }
 
     try {
-      await api.post("/timer", {
-        timer_seconds: finalTimerSeconds,
-      });
+      await api.post("/timer", withInitData({ timer_seconds: finalTimerSeconds }));
       setTimerSeconds(finalTimerSeconds);
       setShowTimerSettings(false);
       setShowTimerModal(false);
@@ -290,9 +315,7 @@ export default function App() {
     const isPreset = TIMER_PRESETS.some(p => p.value === totalSeconds);
     
     try {
-      await api.post("/timer", {
-        timer_seconds: totalSeconds,
-      });
+      await api.post("/timer", withInitData({ timer_seconds: totalSeconds }));
       
       setTimerSeconds(totalSeconds);
       setUseCustomTimer(!isPreset);
