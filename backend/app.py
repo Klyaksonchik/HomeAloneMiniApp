@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # -------------------- Конфиг --------------------
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+BOT_TOKEN = (os.environ.get("BOT_TOKEN") or "").strip()
 if not BOT_TOKEN:
     raise RuntimeError("Переменная окружения BOT_TOKEN не установлена")
 
@@ -341,9 +341,35 @@ def _cors_allowed_origins():
     return default + [x.strip() for x in extra.split(",") if x.strip()]
 
 
+def _raw_init_data_from_request() -> str | None:
+    """
+    initData из заголовка (предпочтительно), Authorization: tma …, query init_data
+    или JSON-поля init_data — на случай если прокси/клиент режет нестандартные заголовки.
+    """
+    raw = (request.headers.get(INIT_DATA_HEADER) or "").strip()
+    if raw:
+        return raw
+    raw = (request.headers.get("X-Telegram-Web-App-Init-Data") or "").strip()
+    if raw:
+        return raw
+    auth = (request.headers.get("Authorization") or "").strip()
+    if auth[:4].lower() == "tma " and len(auth) > 4:
+        return auth[4:].strip()
+    raw = (request.args.get("init_data") or "").strip()
+    if raw:
+        return raw
+    if request.is_json:
+        body = request.get_json(silent=True) or {}
+        if isinstance(body, dict):
+            b = body.get("init_data")
+            if isinstance(b, str) and b.strip():
+                return b.strip()
+    return None
+
+
 def get_authenticated_telegram_user_id() -> int | None:
-    """user_id только из подписанного initData заголовка (не из тела запроса)."""
-    raw = request.headers.get(INIT_DATA_HEADER, "").strip()
+    """user_id только из проверенного initData (не из поля user_id в теле)."""
+    raw = _raw_init_data_from_request()
     if not raw:
         return None
     return telegram_user_id_from_init_data(raw, BOT_TOKEN)
@@ -354,7 +380,12 @@ CORS(
     app,
     origins=_cors_allowed_origins(),
     supports_credentials=False,
-    allow_headers=["Content-Type", INIT_DATA_HEADER],
+    allow_headers=[
+        "Content-Type",
+        INIT_DATA_HEADER,
+        "X-Telegram-Web-App-Init-Data",
+        "Authorization",
+    ],
 )
 
 limiter = Limiter(
